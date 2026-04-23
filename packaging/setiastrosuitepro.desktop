@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Seti Astro Suite Pro
+Comment=Advanced astrophotography toolkit
+Exec=setiastrosuitepro %F
+Icon=setiastrosuitepro
+Terminal=false
+Categories=Graphics;Science;Astronomy;
+MimeType=image/fits;image/tiff;image/png;image/jpeg;
+StartupNotify=true

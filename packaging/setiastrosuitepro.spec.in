@@ -1,0 +1,82 @@
+Name:           setiastrosuitepro
+Version:        @VERSION@
+Release:        @RELEASE@%{?dist}
+Summary:        Advanced astrophotography toolkit (wrapper package)
+
+License:        GPL-3.0-only
+URL:            https://github.com/setiastro/setiastrosuitepro
+Source0:        %{name}-%{version}.tar.gz
+Source1:        setiastrosuitepro-launcher.sh
+Source2:        setiastrosuitepro.desktop
+
+BuildArch:      x86_64
+BuildRequires:  bash
+BuildRequires:  python3
+BuildRequires:  python3-devel
+BuildRequires:  python3-pip
+BuildRequires:  desktop-file-utils
+BuildRequires:  hicolor-icon-theme
+
+Requires:       bash
+Requires:       python3
+Requires(post): desktop-file-utils
+Requires(postun): desktop-file-utils
+Requires(post): hicolor-icon-theme
+Requires(postun): hicolor-icon-theme
+
+%description
+This package wraps Seti Astro Suite Pro and installs it into a private Python
+virtual environment under /opt/setiastrosuitepro.
+
+The build pulls Python dependencies with pip during RPM build time.
+Internet access is required unless you pre-populate a wheel cache.
+
+%prep
+%setup -q
+
+%build
+# No compile step here; pip/venv install is performed in %%install.
+
+%install
+rm -rf %{buildroot}
+
+python3 -m venv venv-build
+venv-build/bin/pip install --upgrade pip setuptools wheel
+venv-build/bin/pip install .
+
+install -d %{buildroot}/opt/%{name}
+cp -a venv-build %{buildroot}/opt/%{name}/venv
+
+install -Dpm0755 %{SOURCE1} %{buildroot}%{_bindir}/%{name}
+install -Dpm0644 %{SOURCE2} %{buildroot}%{_datadir}/applications/%{name}.desktop
+install -Dpm0644 src/setiastro/images/astrosuitepro.png %{buildroot}%{_datadir}/icons/hicolor/256x256/apps/%{name}.png
+
+%post
+if [ -x /usr/bin/update-desktop-database ]; then
+  /usr/bin/update-desktop-database -q %{_datadir}/applications || :
+fi
+if [ -x /usr/bin/gtk-update-icon-cache ]; then
+  /usr/bin/gtk-update-icon-cache -q -t -f %{_datadir}/icons/hicolor || :
+fi
+
+%postun
+if [ $1 -eq 0 ]; then
+  if [ -x /usr/bin/update-desktop-database ]; then
+    /usr/bin/update-desktop-database -q %{_datadir}/applications || :
+  fi
+  if [ -x /usr/bin/gtk-update-icon-cache ]; then
+    /usr/bin/gtk-update-icon-cache -q -t -f %{_datadir}/icons/hicolor || :
+  fi
+fi
+
+%files
+%license LICENSE license.txt
+%doc README.md
+%{_bindir}/%{name}
+%{_datadir}/applications/%{name}.desktop
+%{_datadir}/icons/hicolor/256x256/apps/%{name}.png
+/opt/%{name}
+
+%changelog
+* Thu Apr 23 2026 Wrapper Maintainer <maintainer@example.com> - @VERSION@-@RELEASE@
+- Initial wrapper RPM packaging
