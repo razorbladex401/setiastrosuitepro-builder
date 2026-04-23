@@ -1,0 +1,76 @@
+stages:
+  - build
+  - release
+
+variables:
+  PACKAGE_NAME: "setiastrosuitepro"
+  UPSTREAM_REF: "main"
+  RPM_RELEASE: "1"
+
+build_rpm:
+  stage: build
+  image: fedora:43
+  script:
+    - dnf -y install rpm-build python3 python3-devel python3-pip desktop-file-utils hicolor-icon-theme gcc gcc-c++ make git findutils sed tar which
+    - chmod +x scripts/*.sh packaging/setiastrosuitepro-launcher.sh
+    - ./scripts/build_rpm.sh --ref "${UPSTREAM_REF}" --release "${RPM_RELEASE}"
+    - BIN_RPM_PATH="$(find out/RPMS -type f -name '*.rpm' ! -name '*.src.rpm' | head -n1)"
+    - SRC_RPM_PATH="$(find out/SRPMS -type f -name '*.src.rpm' | head -n1)"
+    - |
+      if [[ -z "${BIN_RPM_PATH}" || -z "${SRC_RPM_PATH}" ]]; then
+        echo "Expected RPM outputs not found." >&2
+        exit 1
+      fi
+    - BIN_RPM_NAME="$(basename "${BIN_RPM_PATH}")"
+    - SRC_RPM_NAME="$(basename "${SRC_RPM_PATH}")"
+    - PKG_VERSION="$(echo "${SRC_RPM_NAME}" | sed -E 's/^setiastrosuitepro-([^-]+)-.*/\1/')"
+    - |
+      if [[ -n "${CI_COMMIT_TAG:-}" ]]; then
+        PACKAGE_BASE_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${PACKAGE_NAME}/${PKG_VERSION}"
+        curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "${BIN_RPM_PATH}" "${PACKAGE_BASE_URL}/${BIN_RPM_NAME}"
+        curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "${SRC_RPM_PATH}" "${PACKAGE_BASE_URL}/${SRC_RPM_NAME}"
+      fi
+    - BIN_RPM_URL="${CI_SERVER_URL}/${CI_PROJECT_PATH}/-/packages/generic/${PACKAGE_NAME}/${PKG_VERSION}/${BIN_RPM_NAME}"
+    - SRC_RPM_URL="${CI_SERVER_URL}/${CI_PROJECT_PATH}/-/packages/generic/${PACKAGE_NAME}/${PKG_VERSION}/${SRC_RPM_NAME}"
+    - |
+      {
+        echo "BIN_RPM_PATH=${BIN_RPM_PATH}"
+        echo "SRC_RPM_PATH=${SRC_RPM_PATH}"
+        echo "BIN_RPM_NAME=${BIN_RPM_NAME}"
+        echo "SRC_RPM_NAME=${SRC_RPM_NAME}"
+        echo "PKG_VERSION=${PKG_VERSION}"
+        echo "BIN_RPM_URL=${BIN_RPM_URL}"
+        echo "SRC_RPM_URL=${SRC_RPM_URL}"
+      } > build.env
+  artifacts:
+    paths:
+      - out/RPMS/
+      - out/SRPMS/
+    reports:
+      dotenv: build.env
+    expire_in: 7 days
+  rules:
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+
+release_rpm:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: build_rpm
+      artifacts: true
+  script:
+    - echo "Creating release for ${CI_COMMIT_TAG} with ${BIN_RPM_NAME} and ${SRC_RPM_NAME}"
+  release:
+    tag_name: '$CI_COMMIT_TAG'
+    name: 'Seti Astro Suite Pro $PKG_VERSION'
+    description: 'RPM build for tag $CI_COMMIT_TAG.'
+    assets:
+      links:
+        - name: 'Binary RPM ($PKG_VERSION)'
+          url: '$BIN_RPM_URL'
+        - name: 'Source RPM ($PKG_VERSION)'
+          url: '$SRC_RPM_URL'
+  rules:
+    - if: '$CI_COMMIT_TAG'

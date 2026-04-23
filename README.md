@@ -60,3 +60,31 @@ Artifacts are copied to:
   host GPU/CUDA compatibility.
 - This wrapper does not attempt strict Fedora packaging guidelines for Python
   dependency unbundling.
+
+## GitLab CI/CD
+
+This repository includes a pipeline in `.gitlab-ci.yml` with two stages:
+
+- `build_rpm`: builds SRPM and binary RPM, stores artifacts, and (for tags)
+  uploads both files to GitLab Generic Package Registry.
+- `release_rpm`: creates a GitLab Release for the tag and attaches links to the
+  uploaded RPM files.
+
+### Triggering a release build
+
+Push a tag:
+
+```bash
+git tag v1.15.2.post2
+git push origin v1.15.2.post2
+```
+
+The tag pipeline will publish:
+
+- Binary RPM link in the GitLab Release
+- Source RPM link in the GitLab Release
+
+### Optional CI variables
+
+- `UPSTREAM_REF`: upstream git ref to build (default: `main`)
+- `RPM_RELEASE`: RPM release component (default: `1`)
