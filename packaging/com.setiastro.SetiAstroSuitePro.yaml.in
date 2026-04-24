@@ -21,6 +21,9 @@ cleanup:
 modules:
   - name: setiastrosuitepro
     buildsystem: simple
+    build-options:
+      build-args:
+        - --share=network
     build-commands:
       - python3 -c "import sys; assert sys.version_info[:2] == (3, 12), f'Flatpak SDK Python must be 3.12, found {sys.version_info[0]}.{sys.version_info[1]}'"
       - sed -i 's|py_cmd + \["-m", "venv", str(p\["venv"\])\]|py_cmd + ["-m", "venv", "--copies", str(p["venv"])]|' src/setiastro/saspro/runtime_torch.py
