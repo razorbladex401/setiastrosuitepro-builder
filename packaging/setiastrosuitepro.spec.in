@@ -43,6 +43,13 @@ Internet access is required unless you pre-populate a wheel cache.
 %prep
 %setup -q
 
+# Upstream creates a user-scoped acceleration runtime venv with a plain
+# `python -m venv`, which on Fedora can symlink `python3` back to the system
+# default interpreter. That breaks SAS Pro's hard Python 3.12 requirement for
+# acceleration even when the app itself runs from a 3.12 venv. Force that
+# runtime venv to use copied interpreter binaries instead.
+sed -i 's|py_cmd + \["-m", "venv", str(p\["venv"\])\]|py_cmd + ["-m", "venv", "--copies", str(p["venv"])]|' src/setiastro/saspro/runtime_torch.py
+
 %build
 # No compile step here; pip/venv install is performed in %%install.
 
