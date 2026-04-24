@@ -57,10 +57,10 @@ install -d %{buildroot}/opt/%{name}
 cp -a venv-build %{buildroot}/opt/%{name}/venv
 
 # Entry-point scripts created inside the build-time virtualenv contain absolute
-# shebangs into the temporary build directory. Rewrite them to the final path.
+# paths into the temporary build directory. Rewrite them to the final path.
 while IFS= read -r -d '' file; do
-  if head -n1 "$file" | grep -q '^#!'; then
-    sed -i '1 s|^#!.*/venv-build/bin/python3$|#!/opt/%{name}/venv/bin/python3|' "$file"
+  if [ -f "$file" ] && [ -s "$file" ]; then
+    sed -i "s|/[^[:space:]'\"]*/venv-build/bin/python3|/opt/%{name}/venv/bin/python3|g" "$file" || :
   fi
 done < <(find %{buildroot}/opt/%{name}/venv/bin -maxdepth 1 -type f -print0)
 
