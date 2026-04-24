@@ -1,0 +1,36 @@
+app-id: com.setiastro.SetiAstroSuitePro
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+command: setiastrosuitepro
+finish-args:
+  - --share=ipc
+  - --share=network
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --device=dri
+  - --filesystem=home
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /share/pkgconfig
+  - /share/aclocal
+  - /man
+  - /share/man
+  - '*.a'
+modules:
+  - name: setiastrosuitepro
+    buildsystem: simple
+    build-commands:
+      - python3 -c "import sys; assert sys.version_info[:2] == (3, 12), f'Flatpak SDK Python must be 3.12, found {sys.version_info[0]}.{sys.version_info[1]}'"
+      - sed -i 's|py_cmd + \["-m", "venv", str(p\["venv"\])\]|py_cmd + ["-m", "venv", "--copies", str(p["venv"])]|' src/setiastro/saspro/runtime_torch.py
+      - python3 -m venv --copies /app/venv
+      - /app/venv/bin/pip install --upgrade pip setuptools wheel
+      - /app/venv/bin/pip install .
+      - install -Dm755 @LAUNCHER_PATH@ /app/bin/setiastrosuitepro
+      - install -Dm644 @DESKTOP_PATH@ /app/share/applications/com.setiastro.SetiAstroSuitePro.desktop
+      - sed -i 's|^Icon=.*|Icon=com.setiastro.SetiAstroSuitePro|' /app/share/applications/com.setiastro.SetiAstroSuitePro.desktop
+      - install -Dm644 src/setiastro/images/astrosuitepro.png /app/share/icons/hicolor/256x256/apps/com.setiastro.SetiAstroSuitePro.png
+    sources:
+      - type: archive
+        path: @SOURCE_ARCHIVE_PATH@

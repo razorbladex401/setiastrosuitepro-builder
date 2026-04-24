@@ -3,66 +3,48 @@ stages:
   - release
 
 variables:
-  PACKAGE_NAME: "setiastrosuitepro"
+  PACKAGE_NAME: "setiastrosuitepro-flatpak"
   UPSTREAM_REF: "main"
-  RPM_RELEASE: ""
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
-  PYTHON_BIN: "python3.12"
-  PYTHON_PACKAGE: "python3.12"
-  PYTHON_DEVEL_PACKAGE: "python3.12-devel"
-  PYTHON_PIP_PACKAGE: "python3-pip"
+  PACKAGE_RELEASE: ""
+  FLATPAK_BRANCH: "stable"
 
-build_rpm:
+build_flatpak:
   stage: build
   image: fedora:43
-  timeout: 90 minutes
-  cache:
-    key: "pip-fedora43"
-    paths:
-      - .pip-cache/
+  timeout: 120 minutes
   script:
     - echo "BUILD_STATUS=started" > build.env
-    - dnf -y install rpm-build "${PYTHON_PACKAGE}" "${PYTHON_DEVEL_PACKAGE}" "${PYTHON_PIP_PACKAGE}" desktop-file-utils hicolor-icon-theme gcc gcc-c++ make git findutils sed tar which
-    - chmod +x scripts/*.sh packaging/setiastrosuitepro-launcher.sh
-    - RELEASE_NUMBER="${RPM_RELEASE:-${CI_PIPELINE_IID:-1}}"
-    - ./scripts/build_rpm.sh --ref "${UPSTREAM_REF}" --release "${RELEASE_NUMBER}" --python-bin "${PYTHON_BIN}" --python-package "${PYTHON_PACKAGE}" --python-devel-package "${PYTHON_DEVEL_PACKAGE}" --python-pip-package "${PYTHON_PIP_PACKAGE}"
-    - BIN_RPM_PATH="$(find out/RPMS -type f -name '*.rpm' ! -name '*.src.rpm' | head -n1)"
-    - SRC_RPM_PATH="$(find out/SRPMS -type f -name '*.src.rpm' | head -n1)"
+    - dnf -y install flatpak flatpak-builder curl git sed tar which
+    - chmod +x scripts/*.sh packaging/setiastrosuitepro-flatpak-launcher.sh
+    - RELEASE_NUMBER="${PACKAGE_RELEASE:-${CI_PIPELINE_IID:-1}}"
+    - ./scripts/build_flatpak.sh --ref "${UPSTREAM_REF}" --release "${RELEASE_NUMBER}" --branch "${FLATPAK_BRANCH}"
+    - BUNDLE_PATH="$(find out/flatpak -type f -name '*.flatpak' | head -n1)"
     - |
-      if [[ -z "${BIN_RPM_PATH}" || -z "${SRC_RPM_PATH}" ]]; then
-        echo "Expected RPM outputs not found." >&2
+      if [[ -z "${BUNDLE_PATH}" ]]; then
+        echo "Expected Flatpak bundle output not found." >&2
         exit 1
       fi
-    - BIN_RPM_NAME="$(basename "${BIN_RPM_PATH}")"
-    - SRC_RPM_NAME="$(basename "${SRC_RPM_PATH}")"
-    - PKG_VERSION="$(echo "${SRC_RPM_NAME}" | sed -E 's/^setiastrosuitepro-([^-]+)-.*/\1/')"
-    - rpm -qlp "${BIN_RPM_PATH}"
-    - du -h "${BIN_RPM_PATH}" "${SRC_RPM_PATH}"
+    - BUNDLE_NAME="$(basename "${BUNDLE_PATH}")"
+    - PKG_VERSION="$(echo "${BUNDLE_NAME}" | sed -E 's/^setiastrosuitepro-([^-]+)-.*/\1/')"
+    - du -h "${BUNDLE_PATH}"
     - PACKAGE_BASE_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${PACKAGE_NAME}/${PKG_VERSION}"
     - |
       curl --fail --insecure --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
-        --upload-file "${BIN_RPM_PATH}" \
-        "${PACKAGE_BASE_URL}/${BIN_RPM_NAME}"
-    - |
-      curl --fail --insecure --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
-        --upload-file "${SRC_RPM_PATH}" \
-        "${PACKAGE_BASE_URL}/${SRC_RPM_NAME}"
-    - BIN_RPM_URL="${CI_SERVER_URL}/${CI_PROJECT_PATH}/-/packages/generic/${PACKAGE_NAME}/${PKG_VERSION}/${BIN_RPM_NAME}"
-    - SRC_RPM_URL="${CI_SERVER_URL}/${CI_PROJECT_PATH}/-/packages/generic/${PACKAGE_NAME}/${PKG_VERSION}/${SRC_RPM_NAME}"
+        --upload-file "${BUNDLE_PATH}" \
+        "${PACKAGE_BASE_URL}/${BUNDLE_NAME}"
+    - BUNDLE_URL="${CI_SERVER_URL}/${CI_PROJECT_PATH}/-/packages/generic/${PACKAGE_NAME}/${PKG_VERSION}/${BUNDLE_NAME}"
     - |
       {
-        echo "BIN_RPM_PATH=${BIN_RPM_PATH}"
-        echo "SRC_RPM_PATH=${SRC_RPM_PATH}"
-        echo "BIN_RPM_NAME=${BIN_RPM_NAME}"
-        echo "SRC_RPM_NAME=${SRC_RPM_NAME}"
+        echo "BUNDLE_PATH=${BUNDLE_PATH}"
+        echo "BUNDLE_NAME=${BUNDLE_NAME}"
         echo "PKG_VERSION=${PKG_VERSION}"
-        echo "RPM_RELEASE=${RELEASE_NUMBER}"
-        echo "PYTHON_BIN=${PYTHON_BIN}"
-        echo "PYTHON_PACKAGE=${PYTHON_PACKAGE}"
-        echo "BIN_RPM_URL=${BIN_RPM_URL}"
-        echo "SRC_RPM_URL=${SRC_RPM_URL}"
+        echo "PACKAGE_RELEASE=${RELEASE_NUMBER}"
+        echo "FLATPAK_BRANCH=${FLATPAK_BRANCH}"
+        echo "BUNDLE_URL=${BUNDLE_URL}"
       } > build.env
   artifacts:
+    paths:
+      - out/flatpak/*.flatpak
     reports:
       dotenv: build.env
     expire_in: 7 days
@@ -73,23 +55,21 @@ build_rpm:
     - if: '$CI_PIPELINE_SOURCE == "web"'
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
 
-release_rpm:
+release_flatpak:
   stage: release
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   needs:
-    - job: build_rpm
+    - job: build_flatpak
       artifacts: true
   script:
-    - echo "Creating release for ${CI_COMMIT_TAG} with ${BIN_RPM_NAME} and ${SRC_RPM_NAME}"
+    - echo "Creating Flatpak release for ${CI_COMMIT_TAG} with ${BUNDLE_NAME}"
   release:
     tag_name: '$CI_COMMIT_TAG'
-    name: 'Seti Astro Suite Pro $PKG_VERSION-$RPM_RELEASE'
-    description: 'RPM build $PKG_VERSION-$RPM_RELEASE for tag $CI_COMMIT_TAG.'
+    name: 'Seti Astro Suite Pro Flatpak $PKG_VERSION-$PACKAGE_RELEASE'
+    description: 'Flatpak build $PKG_VERSION-$PACKAGE_RELEASE for tag $CI_COMMIT_TAG.'
     assets:
       links:
-        - name: 'Binary RPM ($PKG_VERSION-$RPM_RELEASE)'
-          url: '$BIN_RPM_URL'
-        - name: 'Source RPM ($PKG_VERSION-$RPM_RELEASE)'
-          url: '$SRC_RPM_URL'
+        - name: 'Flatpak Bundle ($PKG_VERSION-$PACKAGE_RELEASE)'
+          url: '$BUNDLE_URL'
   rules:
     - if: '$CI_COMMIT_TAG'

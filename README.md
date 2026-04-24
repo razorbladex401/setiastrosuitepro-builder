@@ -1,35 +1,36 @@
 # setiastro-wrapper
 
-Wrapper repository to build RPMs for [Seti Astro Suite Pro](https://github.com/setiastro/setiastrosuitepro).
+Wrapper repository to build Flatpak bundles for [Seti Astro Suite Pro](https://github.com/setiastro/setiastrosuitepro).
 
 ## What this does
 
 - Clones upstream source at a selected ref
-- Produces a deterministic source tarball for rpmbuild
-- Generates an RPM spec from a template
-- Builds SRPM + RPM via rpmbuild
-- Installs the application in `/opt/setiastrosuitepro/venv`
+- Produces a deterministic source tarball for Flatpak builds
+- Generates a Flatpak manifest from a template
+- Builds a Flatpak bundle via `flatpak-builder`
+- Installs the application in `/app/venv` inside the Flatpak sandbox
 - Installs a launcher command: `setiastrosuitepro`
 - Installs a desktop entry and icon
 
-## Why a wrapper RPM
+## Why a wrapper Flatpak
 
 The upstream project is a large Poetry-based Python GUI app with many binary
-Python dependencies. Packaging every dependency as distro-native RPMs is
-possible but high-effort and distro-specific. This wrapper approach is faster
-and practical for internal distribution.
+Python dependencies and a strict Python 3.12 requirement for acceleration.
+Flatpak gives us a controlled userspace, avoids host-Python drift, and is a
+better fit for shipping a self-contained desktop app than host-coupled RPMs.
+
+The repository still contains the earlier RPM packaging files, but the current
+CI flow is Flatpak-first.
 
 ## Prerequisites (Fedora/RHEL-like)
 
 ```bash
 sudo dnf install -y \
-  rpm-build \
-  python3.12 \
-  python3.12-devel \
-  python3-pip \
-  desktop-file-utils \
-  hicolor-icon-theme \
-  gcc gcc-c++ make
+  flatpak \
+  flatpak-builder \
+  git sed tar which
+
+flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 ```
 
 ## Build
@@ -37,54 +38,41 @@ sudo dnf install -y \
 From this wrapper repo root:
 
 ```bash
-chmod +x scripts/*.sh packaging/setiastrosuitepro-launcher.sh
-./scripts/build_rpm.sh --ref main --python-bin python3.12
+chmod +x scripts/*.sh packaging/setiastrosuitepro-flatpak-launcher.sh
+./scripts/build_flatpak.sh --ref main
 ```
 
 Optional explicit version/release:
 
 ```bash
-./scripts/build_rpm.sh --ref v1.15.2.post2 --version 1.15.2.post2 --release 1
-
-# Explicitly target the side-by-side Fedora python3.12 packages
-./scripts/build_rpm.sh \
+./scripts/build_flatpak.sh \
   --ref v1.15.2.post2 \
   --version 1.15.2.post2 \
   --release 1 \
-  --python-bin python3.12 \
-  --python-package python3.12 \
-  --python-devel-package python3.12-devel \
-  --python-pip-package python3-pip
+  --branch stable
 ```
 
 Artifacts are copied to:
 
-- `out/RPMS/`
-- `out/SRPMS/`
+- `out/flatpak/`
 
 ## Notes
 
-- Build needs internet access for pip dependency resolution unless you provide
-  an internal package mirror/cache.
-- The wrapper can target a side-by-side Python such as `python3.12` instead of
-  Fedora's default `python3`. The packaged virtualenv still depends on that
-  host Python ABI/package being installed at runtime.
-- Linux upstream currently selects `onnxruntime-gpu`; runtime still depends on
-  host GPU/CUDA compatibility.
-- This wrapper does not attempt strict Fedora packaging guidelines for Python
-  dependency unbundling.
-- The RPM spec disables default debuginfo/strip post-processing because the
-  bundled virtualenv contains many vendor ELF binaries that are not safe for
-  Fedora's automatic `find-debuginfo`/`eu-strip` pipeline.
+- `flatpak-builder` downloads the Flatpak SDK/runtime from Flathub on first use.
+- The app itself runs inside `/app/venv`, and the Flatpak manifest patches the
+  upstream acceleration runtime so its user-scoped venv is created with
+  `--copies` instead of symlinking back to the host Python.
+- Linux upstream currently selects `onnxruntime-gpu`; usable GPU acceleration in
+  Flatpak still depends on host driver integration and Flatpak runtime support.
 
 ## GitLab CI/CD
 
 This repository includes a pipeline in `.gitlab-ci.yml` with two stages:
 
-- `build_rpm`: builds SRPM and binary RPM, stores artifacts, and (for tags)
-  uploads both files to GitLab Generic Package Registry.
-- `release_rpm`: creates a GitLab Release for the tag and attaches links to the
-  uploaded RPM files.
+- `build_flatpak`: builds a Flatpak bundle, stores it as an artifact, and (for tags)
+  uploads it to the GitLab Generic Package Registry.
+- `release_flatpak`: creates a GitLab Release for the tag and attaches a link to the
+  uploaded Flatpak bundle.
 
 ### Triggering a release build
 
@@ -97,14 +85,10 @@ git push origin v1.15.2.post2
 
 The tag pipeline will publish:
 
-- Binary RPM link in the GitLab Release
-- Source RPM link in the GitLab Release
+- Flatpak bundle link in the GitLab Release
 
 ### Optional CI variables
 
 - `UPSTREAM_REF`: upstream git ref to build (default: `main`)
-- `RPM_RELEASE`: RPM release component (default: GitLab `CI_PIPELINE_IID`)
-- `PYTHON_BIN`: Python executable used to create the venv (default in CI: `python3.12`)
-- `PYTHON_PACKAGE`: runtime/build package name for that Python (default in CI: `python3.12`)
-- `PYTHON_DEVEL_PACKAGE`: development package for that Python (default in CI: `python3.12-devel`)
-- `PYTHON_PIP_PACKAGE`: pip package for that Python (default in CI: `python3-pip`)
+- `PACKAGE_RELEASE`: Flatpak bundle release component (default: GitLab `CI_PIPELINE_IID`)
+- `FLATPAK_BRANCH`: Flatpak branch name (default: `stable`)
