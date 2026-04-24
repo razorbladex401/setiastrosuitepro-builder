@@ -21,12 +21,12 @@ cleanup:
 modules:
   - name: krb5
     subdir: krb5-krb5-1.21.3-final/src
-    buildsystem: autotools
-    config-opts:
-      - --localstatedir=/var/lib
-      - --sbindir=/app/bin
-      - --disable-static
-      - --disable-rpath
+    buildsystem: simple
+    build-commands:
+      - autoreconf -i
+      - ./configure --prefix=/app --localstatedir=/var/lib --sbindir=/app/bin --disable-static --disable-rpath
+      - make -j$(nproc)
+      - make install
     cleanup:
       - /bin
       - /include
