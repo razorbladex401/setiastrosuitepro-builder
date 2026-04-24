@@ -110,6 +110,7 @@ flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flat
 flatpak-builder \
   --force-clean \
   --install-deps-from=flathub \
+  --allow-network \
   --repo="$REPO_DIR" \
   "$BUILD_DIR" \
   "$MANIFEST_FILE"
