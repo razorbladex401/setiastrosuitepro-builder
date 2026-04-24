@@ -12,6 +12,10 @@ OUT_DIR="${ROOT_DIR}/out"
 usage() {
   cat <<'EOF'
 Usage: build_rpm.sh [--version VERSION] [--ref REF] [--release RELEASE]
+                    [--python-bin PYTHON_BIN]
+                    [--python-package PYTHON_PACKAGE]
+                    [--python-devel-package PYTHON_DEVEL_PACKAGE]
+                    [--python-pip-package PYTHON_PIP_PACKAGE]
 
 Builds source and binary RPMs for Seti Astro Suite Pro.
 
@@ -19,12 +23,20 @@ Options:
   --version   Package version (default: from upstream pyproject at --ref)
   --ref       Upstream git ref (default: main)
   --release   RPM release string without dist tag (default: 1)
+  --python-bin            Python executable used to create the venv (default: python3)
+  --python-package        Runtime/build RPM package for that Python (default: derived from --python-bin)
+  --python-devel-package  Development RPM package for that Python (default: <python-package>-devel)
+  --python-pip-package    pip RPM package for that Python (default: <python-package>-pip)
 EOF
 }
 
 VERSION=""
 REF="main"
 RELEASE="1"
+PYTHON_BIN="python3"
+PYTHON_PACKAGE=""
+PYTHON_DEVEL_PACKAGE=""
+PYTHON_PIP_PACKAGE=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -40,6 +52,22 @@ while [[ $# -gt 0 ]]; do
       RELEASE="$2"
       shift 2
       ;;
+    --python-bin)
+      PYTHON_BIN="$2"
+      shift 2
+      ;;
+    --python-package)
+      PYTHON_PACKAGE="$2"
+      shift 2
+      ;;
+    --python-devel-package)
+      PYTHON_DEVEL_PACKAGE="$2"
+      shift 2
+      ;;
+    --python-pip-package)
+      PYTHON_PIP_PACKAGE="$2"
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -51,6 +79,18 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+if [[ -z "$PYTHON_PACKAGE" ]]; then
+  PYTHON_PACKAGE="$PYTHON_BIN"
+fi
+
+if [[ -z "$PYTHON_DEVEL_PACKAGE" ]]; then
+  PYTHON_DEVEL_PACKAGE="${PYTHON_PACKAGE}-devel"
+fi
+
+if [[ -z "$PYTHON_PIP_PACKAGE" ]]; then
+  PYTHON_PIP_PACKAGE="${PYTHON_PACKAGE}-pip"
+fi
 
 need_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -64,7 +104,7 @@ need_cmd rpmbuild
 need_cmd sed
 need_cmd grep
 need_cmd tar
-need_cmd python3
+need_cmd "$PYTHON_BIN"
 
 mkdir -p "$SOURCES_DIR" "$SPECS_DIR" "$RPMS_DIR" "$SRPMS_DIR" "$OUT_DIR"
 
@@ -99,6 +139,10 @@ SPEC_FILE="${SPECS_DIR}/setiastrosuitepro.spec"
 sed \
   -e "s/@VERSION@/${VERSION}/g" \
   -e "s/@RELEASE@/${RELEASE}/g" \
+  -e "s/@PYTHON_BIN@/${PYTHON_BIN}/g" \
+  -e "s/@PYTHON_PACKAGE@/${PYTHON_PACKAGE}/g" \
+  -e "s/@PYTHON_DEVEL_PACKAGE@/${PYTHON_DEVEL_PACKAGE}/g" \
+  -e "s/@PYTHON_PIP_PACKAGE@/${PYTHON_PIP_PACKAGE}/g" \
   "$SPEC_TEMPLATE" > "$SPEC_FILE"
 
 rpmbuild -ba \

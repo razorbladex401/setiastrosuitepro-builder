@@ -7,6 +7,10 @@ variables:
   UPSTREAM_REF: "main"
   RPM_RELEASE: ""
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+  PYTHON_BIN: "python3.12"
+  PYTHON_PACKAGE: "python3.12"
+  PYTHON_DEVEL_PACKAGE: "python3.12-devel"
+  PYTHON_PIP_PACKAGE: "python3.12-pip"
 
 build_rpm:
   stage: build
@@ -18,10 +22,10 @@ build_rpm:
       - .pip-cache/
   script:
     - echo "BUILD_STATUS=started" > build.env
-    - dnf -y install rpm-build python3 python3-devel python3-pip desktop-file-utils hicolor-icon-theme gcc gcc-c++ make git findutils sed tar which
+    - dnf -y install rpm-build "${PYTHON_PACKAGE}" "${PYTHON_DEVEL_PACKAGE}" "${PYTHON_PIP_PACKAGE}" desktop-file-utils hicolor-icon-theme gcc gcc-c++ make git findutils sed tar which
     - chmod +x scripts/*.sh packaging/setiastrosuitepro-launcher.sh
     - RELEASE_NUMBER="${RPM_RELEASE:-${CI_PIPELINE_IID:-1}}"
-    - ./scripts/build_rpm.sh --ref "${UPSTREAM_REF}" --release "${RELEASE_NUMBER}"
+    - ./scripts/build_rpm.sh --ref "${UPSTREAM_REF}" --release "${RELEASE_NUMBER}" --python-bin "${PYTHON_BIN}" --python-package "${PYTHON_PACKAGE}" --python-devel-package "${PYTHON_DEVEL_PACKAGE}" --python-pip-package "${PYTHON_PIP_PACKAGE}"
     - BIN_RPM_PATH="$(find out/RPMS -type f -name '*.rpm' ! -name '*.src.rpm' | head -n1)"
     - SRC_RPM_PATH="$(find out/SRPMS -type f -name '*.src.rpm' | head -n1)"
     - |
@@ -53,6 +57,8 @@ build_rpm:
         echo "SRC_RPM_NAME=${SRC_RPM_NAME}"
         echo "PKG_VERSION=${PKG_VERSION}"
         echo "RPM_RELEASE=${RELEASE_NUMBER}"
+        echo "PYTHON_BIN=${PYTHON_BIN}"
+        echo "PYTHON_PACKAGE=${PYTHON_PACKAGE}"
         echo "BIN_RPM_URL=${BIN_RPM_URL}"
         echo "SRC_RPM_URL=${SRC_RPM_URL}"
       } > build.env

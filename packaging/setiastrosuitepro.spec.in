@@ -20,14 +20,14 @@ Source2:        setiastrosuitepro.desktop
 
 BuildArch:      x86_64
 BuildRequires:  bash
-BuildRequires:  python3
-BuildRequires:  python3-devel
-BuildRequires:  python3-pip
+BuildRequires:  @PYTHON_PACKAGE@
+BuildRequires:  @PYTHON_DEVEL_PACKAGE@
+BuildRequires:  @PYTHON_PIP_PACKAGE@
 BuildRequires:  desktop-file-utils
 BuildRequires:  hicolor-icon-theme
 
 Requires:       bash
-Requires:       python3
+Requires:       @PYTHON_PACKAGE@
 Requires(post): desktop-file-utils
 Requires(postun): desktop-file-utils
 Requires(post): hicolor-icon-theme
@@ -49,7 +49,7 @@ Internet access is required unless you pre-populate a wheel cache.
 %install
 rm -rf %{buildroot}
 
-python3 -m venv --copies venv-build
+@PYTHON_BIN@ -m venv --copies venv-build
 venv-build/bin/pip install --upgrade pip setuptools wheel
 venv-build/bin/pip install .
 
