@@ -47,7 +47,7 @@ Internet access is required unless you pre-populate a wheel cache.
 %install
 rm -rf %{buildroot}
 
-python3 -m venv venv-build
+python3 -m venv --copies venv-build
 venv-build/bin/pip install --upgrade pip setuptools wheel
 venv-build/bin/pip install .
 

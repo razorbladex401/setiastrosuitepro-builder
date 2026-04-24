@@ -44,9 +44,6 @@ build_rpm:
         echo "SRC_RPM_URL=${SRC_RPM_URL}"
       } > build.env
   artifacts:
-    paths:
-      - out/RPMS/
-      - out/SRPMS/
     reports:
       dotenv: build.env
     expire_in: 7 days
