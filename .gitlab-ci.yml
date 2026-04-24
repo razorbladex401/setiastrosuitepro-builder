@@ -16,8 +16,75 @@ build_flatpak:
     - echo "BUILD_STATUS=started" > build.env
     - dnf -y install flatpak flatpak-builder curl git sed tar which
     - chmod +x scripts/*.sh packaging/setiastrosuitepro-flatpak-launcher.sh
+    - BUILD_REF="${UPSTREAM_REF}"
+    - BUILD_VERSION=""
+    - |
+      if [[ "${CI_PIPELINE_SOURCE}" == "schedule" ]]; then
+        echo "Scheduled pipeline detected: checking upstream release against package registry"
+
+        GH_JSON="$(curl --fail --silent --show-error "https://api.github.com/repos/setiastro/setiastrosuitepro/releases/latest")"
+        read -r LATEST_TAG LATEST_VERSION < <(
+          printf '%s' "${GH_JSON}" | python3 -c '
+import json, sys
+obj = json.load(sys.stdin)
+tag = (obj.get("tag_name") or "").strip()
+if not tag:
+    raise SystemExit("Could not determine latest upstream tag_name from GitHub releases API")
+version = tag[1:] if tag.startswith("v") else tag
+print(f"{tag} {version}")
+'
+        )
+
+        PKG_JSON="$(curl --silent --show-error --header "JOB-TOKEN: ${CI_JOB_TOKEN}" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages?package_type=generic&package_name=${PACKAGE_NAME}&order_by=created_at&sort=desc&per_page=1" || true)"
+        LAST_BUILT_VERSION="$(
+          printf '%s' "${PKG_JSON}" | python3 -c '
+import json, sys
+raw = sys.stdin.read().strip()
+if not raw:
+    print("")
+    raise SystemExit(0)
+try:
+    data = json.loads(raw)
+except Exception:
+    print("")
+    raise SystemExit(0)
+if isinstance(data, list) and data:
+    print((data[0].get("version") or "").strip())
+else:
+    print("")
+'
+        )"
+
+        echo "Latest upstream release: ${LATEST_TAG} (version ${LATEST_VERSION})"
+        if [[ -n "${LAST_BUILT_VERSION}" ]]; then
+          echo "Most recent published package version: ${LAST_BUILT_VERSION}"
+        else
+          echo "No previously published package version found"
+        fi
+
+        if [[ -n "${LAST_BUILT_VERSION}" && "${LAST_BUILT_VERSION}" == "${LATEST_VERSION}" ]]; then
+          echo "No new upstream release. Skipping scheduled build."
+          {
+            echo "BUILD_STATUS=skipped"
+            echo "SKIP_REASON=No new upstream release"
+            echo "LATEST_UPSTREAM_TAG=${LATEST_TAG}"
+            echo "LATEST_UPSTREAM_VERSION=${LATEST_VERSION}"
+            echo "LAST_BUILT_VERSION=${LAST_BUILT_VERSION}"
+          } > build.env
+          exit 0
+        fi
+
+        BUILD_REF="${LATEST_TAG}"
+        BUILD_VERSION="${LATEST_VERSION}"
+        echo "New upstream release detected. Building ${BUILD_VERSION} from ${BUILD_REF}."
+      fi
     - RELEASE_NUMBER="${PACKAGE_RELEASE:-${CI_PIPELINE_IID:-1}}"
-    - ./scripts/build_flatpak.sh --ref "${UPSTREAM_REF}" --release "${RELEASE_NUMBER}" --branch "${FLATPAK_BRANCH}"
+    - |
+      if [[ -n "${BUILD_VERSION}" ]]; then
+        ./scripts/build_flatpak.sh --ref "${BUILD_REF}" --version "${BUILD_VERSION}" --release "${RELEASE_NUMBER}" --branch "${FLATPAK_BRANCH}"
+      else
+        ./scripts/build_flatpak.sh --ref "${BUILD_REF}" --release "${RELEASE_NUMBER}" --branch "${FLATPAK_BRANCH}"
+      fi
     - BUNDLE_PATH="$(find out/flatpak -type f -name '*.flatpak' | head -n1)"
     - |
       if [[ -z "${BUNDLE_PATH}" ]]; then
@@ -40,6 +107,7 @@ build_flatpak:
         echo "PKG_VERSION=${PKG_VERSION}"
         echo "PACKAGE_RELEASE=${RELEASE_NUMBER}"
         echo "FLATPAK_BRANCH=${FLATPAK_BRANCH}"
+        echo "UPSTREAM_REF=${BUILD_REF}"
         echo "BUNDLE_URL=${BUNDLE_URL}"
       } > build.env
   artifacts:
