@@ -35,7 +35,7 @@ modules:
     sources:
       - type: archive
         url: https://web.mit.edu/kerberos/dist/krb5/1.21/krb5-1.21.3.tar.gz
-        sha256: b7a4cd5ead67fb08b980b21abd150ff7217e85ea320c9ed0c6dadd304840ad35
+        sha256: 6e26ce74fcef3d369e74bfe609f2c9ff75615976959f4c0e510543fc8b09615d
 
   - name: setiastrosuitepro
     buildsystem: simple
