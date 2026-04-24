@@ -20,7 +20,7 @@ cleanup:
   - '*.a'
 modules:
   - name: krb5
-    subdir: src
+    subdir: krb5-krb5-1.21.3/src
     buildsystem: autotools
     config-opts:
       - --localstatedir=/var/lib
@@ -34,8 +34,8 @@ modules:
       - /share
     sources:
       - type: archive
-        url: https://web.mit.edu/kerberos/dist/krb5/1.21/krb5-1.21.3.tar.gz
-        sha256: 6e26ce74fcef3d369e74bfe609f2c9ff75615976959f4c0e510543fc8b09615d
+        url: https://github.com/krb5/krb5/archive/refs/tags/krb5-1.21.3.tar.gz
+        sha256: d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed
 
   - name: setiastrosuitepro
     buildsystem: simple
