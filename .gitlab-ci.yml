@@ -6,10 +6,16 @@ variables:
   PACKAGE_NAME: "setiastrosuitepro"
   UPSTREAM_REF: "main"
   RPM_RELEASE: "1"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
 
 build_rpm:
   stage: build
   image: fedora:43
+  timeout: 90 minutes
+  cache:
+    key: "pip-fedora43"
+    paths:
+      - .pip-cache/
   script:
     - echo "BUILD_STATUS=started" > build.env
     - dnf -y install rpm-build python3 python3-devel python3-pip desktop-file-utils hicolor-icon-theme gcc gcc-c++ make git findutils sed tar which

@@ -9,6 +9,8 @@ Summary:        Advanced astrophotography toolkit (wrapper package)
 %global debug_package %{nil}
 %global __os_install_post %{nil}
 %global _missing_build_ids_terminate_build 0
+%global __requires_exclude_from ^/opt/%{name}/venv/.*$
+%global __provides_exclude_from ^/opt/%{name}/venv/.*$
 
 License:        GPL-3.0-only
 URL:            https://github.com/setiastro/setiastrosuitepro
@@ -53,6 +55,14 @@ venv-build/bin/pip install .
 
 install -d %{buildroot}/opt/%{name}
 cp -a venv-build %{buildroot}/opt/%{name}/venv
+
+# Entry-point scripts created inside the build-time virtualenv contain absolute
+# shebangs into the temporary build directory. Rewrite them to the final path.
+while IFS= read -r -d '' file; do
+  if head -n1 "$file" | grep -q '^#!'; then
+    sed -i '1 s|^#!.*/venv-build/bin/python3$|#!/opt/%{name}/venv/bin/python3|' "$file"
+  fi
+done < <(find %{buildroot}/opt/%{name}/venv/bin -maxdepth 1 -type f -print0)
 
 install -Dpm0755 %{SOURCE1} %{buildroot}%{_bindir}/%{name}
 install -Dpm0644 %{SOURCE2} %{buildroot}%{_datadir}/applications/%{name}.desktop
