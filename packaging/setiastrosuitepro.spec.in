@@ -3,6 +3,13 @@ Version:        @VERSION@
 Release:        @RELEASE@%{?dist}
 Summary:        Advanced astrophotography toolkit (wrapper package)
 
+# This package bundles a Python virtualenv containing many prebuilt binary
+# wheels. Running the default RPM debug/strip pipeline against those vendor
+# binaries causes build failures (missing build-id, illformed ELF warnings).
+%global debug_package %{nil}
+%global __os_install_post %{nil}
+%global _missing_build_ids_terminate_build 0
+
 License:        GPL-3.0-only
 URL:            https://github.com/setiastro/setiastrosuitepro
 Source0:        %{name}-%{version}.tar.gz

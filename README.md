@@ -60,6 +60,9 @@ Artifacts are copied to:
   host GPU/CUDA compatibility.
 - This wrapper does not attempt strict Fedora packaging guidelines for Python
   dependency unbundling.
+- The RPM spec disables default debuginfo/strip post-processing because the
+  bundled virtualenv contains many vendor ELF binaries that are not safe for
+  Fedora's automatic `find-debuginfo`/`eu-strip` pipeline.
 
 ## GitLab CI/CD
 

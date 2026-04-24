@@ -11,6 +11,7 @@ build_rpm:
   stage: build
   image: fedora:43
   script:
+    - echo "BUILD_STATUS=started" > build.env
     - dnf -y install rpm-build python3 python3-devel python3-pip desktop-file-utils hicolor-icon-theme gcc gcc-c++ make git findutils sed tar which
     - chmod +x scripts/*.sh packaging/setiastrosuitepro-launcher.sh
     - ./scripts/build_rpm.sh --ref "${UPSTREAM_REF}" --release "${RPM_RELEASE}"
