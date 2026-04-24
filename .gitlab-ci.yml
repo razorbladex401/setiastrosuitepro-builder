@@ -25,13 +25,15 @@ build_rpm:
     - BIN_RPM_NAME="$(basename "${BIN_RPM_PATH}")"
     - SRC_RPM_NAME="$(basename "${SRC_RPM_PATH}")"
     - PKG_VERSION="$(echo "${SRC_RPM_NAME}" | sed -E 's/^setiastrosuitepro-([^-]+)-.*/\1/')"
+    - rpm -qlp "${BIN_RPM_PATH}"
+    - du -h "${BIN_RPM_PATH}" "${SRC_RPM_PATH}"
     - PACKAGE_BASE_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${PACKAGE_NAME}/${PKG_VERSION}"
     - |
-      curl --fail --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+      curl --fail --insecure --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
         --upload-file "${BIN_RPM_PATH}" \
         "${PACKAGE_BASE_URL}/${BIN_RPM_NAME}"
     - |
-      curl --fail --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+      curl --fail --insecure --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
         --upload-file "${SRC_RPM_PATH}" \
         "${PACKAGE_BASE_URL}/${SRC_RPM_NAME}"
     - BIN_RPM_URL="${CI_SERVER_URL}/${CI_PROJECT_PATH}/-/packages/generic/${PACKAGE_NAME}/${PKG_VERSION}/${BIN_RPM_NAME}"
