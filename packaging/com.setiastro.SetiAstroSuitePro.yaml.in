@@ -20,7 +20,7 @@ cleanup:
   - '*.a'
 modules:
   - name: krb5
-    subdir: krb5-krb5-1.21.3-final/src
+    subdir: src
     buildsystem: simple
     build-commands:
       - autoreconf -i
