@@ -26,7 +26,7 @@ sudo dnf install -y \
   rpm-build \
   python3.12 \
   python3.12-devel \
-  python3.12-pip \
+  python3-pip \
   desktop-file-utils \
   hicolor-icon-theme \
   gcc gcc-c++ make
@@ -54,7 +54,7 @@ Optional explicit version/release:
   --python-bin python3.12 \
   --python-package python3.12 \
   --python-devel-package python3.12-devel \
-  --python-pip-package python3.12-pip
+  --python-pip-package python3-pip
 ```
 
 Artifacts are copied to:
@@ -107,4 +107,4 @@ The tag pipeline will publish:
 - `PYTHON_BIN`: Python executable used to create the venv (default in CI: `python3.12`)
 - `PYTHON_PACKAGE`: runtime/build package name for that Python (default in CI: `python3.12`)
 - `PYTHON_DEVEL_PACKAGE`: development package for that Python (default in CI: `python3.12-devel`)
-- `PYTHON_PIP_PACKAGE`: pip package for that Python (default in CI: `python3.12-pip`)
+- `PYTHON_PIP_PACKAGE`: pip package for that Python (default in CI: `python3-pip`)

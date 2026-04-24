@@ -89,7 +89,14 @@ if [[ -z "$PYTHON_DEVEL_PACKAGE" ]]; then
 fi
 
 if [[ -z "$PYTHON_PIP_PACKAGE" ]]; then
-  PYTHON_PIP_PACKAGE="${PYTHON_PACKAGE}-pip"
+  case "$PYTHON_PACKAGE" in
+    python3|python3.*)
+      PYTHON_PIP_PACKAGE="python3-pip"
+      ;;
+    *)
+      PYTHON_PIP_PACKAGE="${PYTHON_PACKAGE}-pip"
+      ;;
+  esac
 fi
 
 need_cmd() {

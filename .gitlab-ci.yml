@@ -10,7 +10,7 @@ variables:
   PYTHON_BIN: "python3.12"
   PYTHON_PACKAGE: "python3.12"
   PYTHON_DEVEL_PACKAGE: "python3.12-devel"
-  PYTHON_PIP_PACKAGE: "python3.12-pip"
+  PYTHON_PIP_PACKAGE: "python3-pip"
 
 build_rpm:
   stage: build
