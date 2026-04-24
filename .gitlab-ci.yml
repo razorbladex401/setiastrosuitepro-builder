@@ -14,7 +14,7 @@ build_flatpak:
   timeout: 120 minutes
   script:
     - echo "BUILD_STATUS=started" > build.env
-    - dnf -y install flatpak flatpak-builder curl git sed tar which
+    - dnf -y install flatpak flatpak-builder curl git sed tar which jq
     - chmod +x scripts/*.sh packaging/setiastrosuitepro-flatpak-launcher.sh
     - BUILD_REF="${UPSTREAM_REF}"
     - BUILD_VERSION=""
@@ -23,37 +23,15 @@ build_flatpak:
         echo "Scheduled pipeline detected: checking upstream release against package registry"
 
         GH_JSON="$(curl --fail --silent --show-error "https://api.github.com/repos/setiastro/setiastrosuitepro/releases/latest")"
-        read -r LATEST_TAG LATEST_VERSION < <(
-          printf '%s' "${GH_JSON}" | python3 -c '
-import json, sys
-obj = json.load(sys.stdin)
-tag = (obj.get("tag_name") or "").strip()
-if not tag:
-    raise SystemExit("Could not determine latest upstream tag_name from GitHub releases API")
-version = tag[1:] if tag.startswith("v") else tag
-print(f"{tag} {version}")
-'
-        )
+        LATEST_TAG="$(printf '%s' "${GH_JSON}" | jq -r '.tag_name // empty')"
+        if [[ -z "${LATEST_TAG}" ]]; then
+          echo "Could not determine latest upstream tag_name from GitHub releases API" >&2
+          exit 1
+        fi
+        LATEST_VERSION="${LATEST_TAG#v}"
 
         PKG_JSON="$(curl --silent --show-error --header "JOB-TOKEN: ${CI_JOB_TOKEN}" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages?package_type=generic&package_name=${PACKAGE_NAME}&order_by=created_at&sort=desc&per_page=1" || true)"
-        LAST_BUILT_VERSION="$(
-          printf '%s' "${PKG_JSON}" | python3 -c '
-import json, sys
-raw = sys.stdin.read().strip()
-if not raw:
-    print("")
-    raise SystemExit(0)
-try:
-    data = json.loads(raw)
-except Exception:
-    print("")
-    raise SystemExit(0)
-if isinstance(data, list) and data:
-    print((data[0].get("version") or "").strip())
-else:
-    print("")
-'
-        )"
+        LAST_BUILT_VERSION="$(printf '%s' "${PKG_JSON}" | jq -r 'if type=="array" and length>0 then .[0].version // "" else "" end' 2>/dev/null || true)"
 
         echo "Latest upstream release: ${LATEST_TAG} (version ${LATEST_VERSION})"
         if [[ -n "${LAST_BUILT_VERSION}" ]]; then
