@@ -52,10 +52,12 @@ chmod +x scripts/*.sh packaging/setiastrosuitepro-flatpak-launcher.sh
 
 Optional explicit version/release:
 
+Versions can be found at the official Set Astro Suite Pro repo.
+
 ```bash
 ./scripts/build_flatpak.sh \
-  --ref v1.15.2.post2 \
-  --version 1.15.2.post2 \
+  --ref v1.15.3.post2 \
+  --version 1.15.3.post2 \
   --release 1 \
   --branch stable
 ```
@@ -63,6 +65,11 @@ Optional explicit version/release:
 Artifacts are copied to:
 
 - `out/flatpak/`
+
+## Install
+```bash
+sudo flatpak install out/setiastrosuitepro-<version>-1.flatpak
+```
 
 ## Notes
 
