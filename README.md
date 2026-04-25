@@ -1,6 +1,6 @@
 # setiastrosuitepro-builder
 
-Wrapper repository to build Flatpak bundles for [Seti Astro Suite Pro](https://github.com/setiastro/setiastrosuitepro).
+Unofficial repository to build Flatpak bundles for [Seti Astro Suite Pro](https://github.com/setiastro/setiastrosuitepro). I liked the tool and wanted to make it easy for myself to install on Fedora 43 which comes with python 3.14. I'm not a fan of maintaining two different python versions on the same system so decided to create a flatpak that's self-contained.
 
 ## What this does
 
@@ -12,24 +12,34 @@ Wrapper repository to build Flatpak bundles for [Seti Astro Suite Pro](https://g
 - Installs a launcher command: `setiastrosuitepro`
 - Installs a desktop entry and icon
 
-## Why a wrapper Flatpak
-
-The upstream project is a large Poetry-based Python GUI app with many binary
-Python dependencies and a strict Python 3.12 requirement for acceleration.
-Flatpak gives us a controlled userspace, avoids host-Python drift, and is a
-better fit for shipping a self-contained desktop app than host-coupled RPMs.
-
-The repository still contains the earlier RPM packaging files, but the current
-CI flow is Flatpak-first.
-
 ## Prerequisites (Fedora/RHEL-like)
+
+The build script checks for the following commands at startup and will exit with
+an error if any are missing:
+
+| Package | Provides | Purpose |
+|---|---|---|
+| `flatpak` | `flatpak` | Install SDK/runtime, create bundle |
+| `flatpak-builder` | `flatpak-builder` | Build the Flatpak sandbox |
+| `git` | `git` | Clone upstream source |
+| `sed` | `sed` | Template substitution in manifest |
+| `grep` | `grep` | Version extraction from pyproject.toml |
+| `curl` | `curl` | Fetch upstream `updates.json` at build time |
+| `jq` | `jq` | Parse JSON from `updates.json` |
+
+Install all at once:
 
 ```bash
 sudo dnf install -y \
   flatpak \
   flatpak-builder \
-  git sed tar which
+  git \
+  sed \
+  grep \
+  curl \
+  jq
 ```
+
 
 ## Build
 
