@@ -180,6 +180,7 @@ jobs:
       - name: Create or update release and upload asset
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
 
@@ -198,10 +199,10 @@ jobs:
             RELEASE_NOTES="Automated Flatpak build ${PKG_VERSION}-${RELEASE_NUMBER}."
           fi
 
-          if gh release view "${TAG_NAME}" >/dev/null 2>&1; then
-            gh release edit "${TAG_NAME}" --title "${RELEASE_NAME}" --notes "${RELEASE_NOTES}"
+          if gh release view "${TAG_NAME}" -R "${GH_REPO}" >/dev/null 2>&1; then
+            gh release edit "${TAG_NAME}" -R "${GH_REPO}" --title "${RELEASE_NAME}" --notes "${RELEASE_NOTES}"
           else
-            gh release create "${TAG_NAME}" --title "${RELEASE_NAME}" --notes "${RELEASE_NOTES}"
+            gh release create "${TAG_NAME}" -R "${GH_REPO}" --title "${RELEASE_NAME}" --notes "${RELEASE_NOTES}"
           fi
 
-          gh release upload "${TAG_NAME}" "${BUNDLE_PATH}" --clobber
+          gh release upload "${TAG_NAME}" -R "${GH_REPO}" "${BUNDLE_PATH}" --clobber
