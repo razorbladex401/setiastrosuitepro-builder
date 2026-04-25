@@ -105,9 +105,16 @@ sed \
   -e "s|@LAUNCHER_PATH@|${LAUNCHER_FILE}|g" \
   "$MANIFEST_TEMPLATE" > "$MANIFEST_FILE"
 
-flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+# In CI and other unprivileged environments, system Flatpak operations are not allowed.
+FLATPAK_INSTALL_ARGS=()
+if [[ "$(id -u)" -ne 0 ]]; then
+  FLATPAK_INSTALL_ARGS+=(--user)
+fi
+
+flatpak "${FLATPAK_INSTALL_ARGS[@]}" remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
 flatpak-builder \
+  "${FLATPAK_INSTALL_ARGS[@]}" \
   --force-clean \
   --install-deps-from=flathub \
   --default-branch="$BRANCH" \
