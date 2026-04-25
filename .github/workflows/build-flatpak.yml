@@ -1,0 +1,207 @@
+name: Build Flatpak
+
+on:
+  push:
+    branches:
+      - "**"
+    tags:
+      - "*"
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      upstream_ref:
+        description: "Upstream ref to build (default: main)"
+        required: false
+        default: "main"
+      package_release:
+        description: "Release suffix for bundle filename (default: run number)"
+        required: false
+        default: ""
+      flatpak_branch:
+        description: "Flatpak branch to bundle (default: stable)"
+        required: false
+        default: "stable"
+  schedule:
+    - cron: "25 3 * * *"
+
+permissions:
+  contents: write
+
+env:
+  UPSTREAM_REF: main
+  PACKAGE_RELEASE: ""
+  FLATPAK_BRANCH: stable
+
+jobs:
+  build_flatpak:
+    name: Build Flatpak
+    runs-on: ubuntu-24.04
+    outputs:
+      build_status: ${{ steps.meta.outputs.build_status }}
+      build_ref: ${{ steps.meta.outputs.build_ref }}
+      build_version: ${{ steps.meta.outputs.build_version }}
+      release_number: ${{ steps.meta.outputs.release_number }}
+      bundle_name: ${{ steps.final_outputs.outputs.bundle_name }}
+      pkg_version: ${{ steps.final_outputs.outputs.pkg_version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder curl git sed grep jq gh
+
+      - name: Ensure scripts are executable
+        run: chmod +x scripts/*.sh packaging/setiastrosuitepro-flatpak-launcher.sh
+
+      - name: Compute build metadata and schedule gate
+        id: meta
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          BUILD_REF="${UPSTREAM_REF}"
+          BUILD_VERSION=""
+          BUILD_STATUS="started"
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            INPUT_REF="${{ inputs.upstream_ref || '' }}"
+            if [[ -n "${INPUT_REF}" ]]; then
+              BUILD_REF="${INPUT_REF}"
+            fi
+          fi
+
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            echo "Scheduled run: comparing upstream updates.json against published GitHub releases"
+            UPDATES_JSON="$(curl --fail --silent --show-error 'https://raw.githubusercontent.com/setiastro/setiastrosuitepro/main/updates.json')"
+            REMOTE_VERSION="$(printf '%s' "${UPDATES_JSON}" | jq -r '.version // empty')"
+
+            if [[ -z "${REMOTE_VERSION}" ]]; then
+              echo "Could not determine version from upstream updates.json" >&2
+              exit 1
+            fi
+
+            if gh release view "flatpak-v${REMOTE_VERSION}" >/dev/null 2>&1; then
+              echo "Version ${REMOTE_VERSION} already published in GitHub Releases. Skipping build."
+              BUILD_STATUS="skipped"
+            else
+              BUILD_REF="main"
+              BUILD_VERSION="${REMOTE_VERSION}"
+              echo "New upstream version detected: ${REMOTE_VERSION}; building from ${BUILD_REF}."
+            fi
+          fi
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            INPUT_RELEASE="${{ inputs.package_release || '' }}"
+            INPUT_BRANCH="${{ inputs.flatpak_branch || '' }}"
+            RELEASE_NUMBER="${INPUT_RELEASE:-${PACKAGE_RELEASE:-${GITHUB_RUN_NUMBER}}}"
+            EFFECTIVE_BRANCH="${INPUT_BRANCH:-${FLATPAK_BRANCH}}"
+          else
+            RELEASE_NUMBER="${PACKAGE_RELEASE:-${GITHUB_RUN_NUMBER}}"
+            EFFECTIVE_BRANCH="${FLATPAK_BRANCH}"
+          fi
+
+          {
+            echo "build_status=${BUILD_STATUS}"
+            echo "build_ref=${BUILD_REF}"
+            echo "build_version=${BUILD_VERSION}"
+            echo "release_number=${RELEASE_NUMBER}"
+            echo "flatpak_branch=${EFFECTIVE_BRANCH}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build bundle
+        if: steps.meta.outputs.build_status != 'skipped'
+        run: |
+          set -euo pipefail
+          BUILD_REF="${{ steps.meta.outputs.build_ref }}"
+          BUILD_VERSION="${{ steps.meta.outputs.build_version }}"
+          RELEASE_NUMBER="${{ steps.meta.outputs.release_number }}"
+          BRANCH="${{ steps.meta.outputs.flatpak_branch }}"
+
+          if [[ -n "${BUILD_VERSION}" ]]; then
+            ./scripts/build_flatpak.sh --ref "${BUILD_REF}" --version "${BUILD_VERSION}" --release "${RELEASE_NUMBER}" --branch "${BRANCH}"
+          else
+            ./scripts/build_flatpak.sh --ref "${BUILD_REF}" --release "${RELEASE_NUMBER}" --branch "${BRANCH}"
+          fi
+
+      - name: Collect artifact metadata
+        if: steps.meta.outputs.build_status != 'skipped'
+        id: artifact_meta
+        run: |
+          set -euo pipefail
+          BUNDLE_PATH="$(find out/flatpak -type f -name '*.flatpak' | head -n1)"
+          if [[ -z "${BUNDLE_PATH}" ]]; then
+            echo "Expected Flatpak bundle output not found." >&2
+            exit 1
+          fi
+
+          BUNDLE_NAME="$(basename "${BUNDLE_PATH}")"
+          PKG_VERSION="$(echo "${BUNDLE_NAME}" | sed -E 's/^setiastrosuitepro-([^-]+)-.*/\1/')"
+
+          {
+            echo "bundle_name=${BUNDLE_NAME}"
+            echo "pkg_version=${PKG_VERSION}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload workflow artifact
+        if: steps.meta.outputs.build_status != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: flatpak-bundle
+          path: out/flatpak/*.flatpak
+          if-no-files-found: error
+
+      - name: Expose final outputs
+        if: always()
+        run: |
+          {
+            echo "bundle_name=${{ steps.artifact_meta.outputs.bundle_name || '' }}"
+            echo "pkg_version=${{ steps.artifact_meta.outputs.pkg_version || '' }}"
+          } >> "$GITHUB_OUTPUT"
+        id: final_outputs
+
+  publish_release_asset:
+    name: Publish to GitHub Release
+    runs-on: ubuntu-24.04
+    needs: build_flatpak
+    if: needs.build_flatpak.outputs.build_status != 'skipped' && github.event_name != 'pull_request'
+
+    steps:
+      - name: Download built bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: flatpak-bundle
+          path: out/flatpak
+
+      - name: Create or update release and upload asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          BUNDLE_PATH="$(find out/flatpak -type f -name '*.flatpak' | head -n1)"
+          BUNDLE_NAME="$(basename "${BUNDLE_PATH}")"
+          PKG_VERSION="${{ needs.build_flatpak.outputs.pkg_version }}"
+          RELEASE_NUMBER="${{ needs.build_flatpak.outputs.release_number }}"
+
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            TAG_NAME="${{ github.ref_name }}"
+            RELEASE_NAME="Seti Astro Suite Pro Flatpak ${PKG_VERSION}-${RELEASE_NUMBER}"
+            RELEASE_NOTES="Flatpak build ${PKG_VERSION}-${RELEASE_NUMBER} for tag ${TAG_NAME}."
+          else
+            TAG_NAME="flatpak-v${PKG_VERSION}"
+            RELEASE_NAME="Seti Astro Suite Pro Flatpak ${PKG_VERSION}-${RELEASE_NUMBER}"
+            RELEASE_NOTES="Automated Flatpak build ${PKG_VERSION}-${RELEASE_NUMBER}."
+          fi
+
+          if gh release view "${TAG_NAME}" >/dev/null 2>&1; then
+            gh release edit "${TAG_NAME}" --title "${RELEASE_NAME}" --notes "${RELEASE_NOTES}"
+          else
+            gh release create "${TAG_NAME}" --title "${RELEASE_NAME}" --notes "${RELEASE_NOTES}"
+          fi
+
+          gh release upload "${TAG_NAME}" "${BUNDLE_PATH}" --clobber

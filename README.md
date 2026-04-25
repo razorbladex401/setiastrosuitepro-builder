@@ -92,16 +92,34 @@ This repository includes a pipeline in `.gitlab-ci.yml` with two stages:
 ### Scheduled build behavior
 
 - Pipelines started by `schedule` do a release check before building.
-- CI queries the latest upstream GitHub release tag from
-  `setiastro/setiastrosuitepro`.
+- CI queries upstream `updates.json` from `setiastro/setiastrosuitepro`.
 - CI also queries the most recently published package version in this project's
   Generic Package Registry (`$PACKAGE_NAME`).
 - If versions match, the scheduled pipeline exits early with `BUILD_STATUS=skipped`.
-- If upstream is newer (or no package has been published yet), CI builds that
-  upstream release tag automatically.
+- If upstream is newer (or no package has been published yet), CI builds from
+  upstream `main` with the advertised upstream version.
 
 Pipelines started by `web`, `push`, merge requests, or tags still run a build
 whenever triggered.
+
+## GitHub Actions CI/CD
+
+This repository also includes a GitHub Actions workflow:
+
+- `.github/workflows/build-flatpak.yml`
+
+It mirrors the GitLab build flow:
+
+- Triggers on push, pull request, tag, manual dispatch, and schedule.
+- Scheduled runs compare upstream `updates.json` version with published GitHub
+  Releases (`flatpak-v<version>` tags) and skip if already built.
+- Builds use the same `scripts/build_flatpak.sh` wrapper.
+- Non-PR runs publish the resulting `.flatpak` bundle to GitHub Release assets.
+
+Release behavior in GitHub:
+
+- Tag-triggered runs publish to that tag's release.
+- Non-tag runs publish/update a release tag named `flatpak-v<version>`.
 
 ### Triggering a release build
 
