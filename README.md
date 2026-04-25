@@ -29,8 +29,6 @@ sudo dnf install -y \
   flatpak \
   flatpak-builder \
   git sed tar which
-
-flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 ```
 
 ## Build
