@@ -139,3 +139,8 @@ The tag pipeline will publish:
 - `UPSTREAM_REF`: upstream git ref to build (default: `main`)
 - `PACKAGE_RELEASE`: Flatpak bundle release component (default: GitLab `CI_PIPELINE_IID`)
 - `FLATPAK_BRANCH`: Flatpak branch name (default: `stable`)
+
+## License
+
+This repository is licensed under the GNU General Public License v3.0.
+See the [LICENSE](LICENSE) file.
