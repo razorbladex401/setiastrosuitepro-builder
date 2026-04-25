@@ -48,6 +48,15 @@ modules:
       - python3 -m venv --copies /app/venv
       - /app/venv/bin/pip install --upgrade pip setuptools wheel Pillow
       - /app/venv/bin/pip install .
+      - |
+        REMOTE_VERSION="$(curl -fsSL 'https://raw.githubusercontent.com/setiastro/setiastrosuitepro/main/updates.json' | jq -r '.version // empty')" && \
+        if [[ -n "$REMOTE_VERSION" ]]; then
+          BUILD_INFO_PATH="/app/venv/lib/python3.12/site-packages/setiastro/saspro/_generated/build_info.py"
+          if [[ -f "$BUILD_INFO_PATH" ]]; then
+            sed -i "s|^APP_VERSION = .*|APP_VERSION = \"$REMOTE_VERSION\"|" "$BUILD_INFO_PATH"
+            echo "[Flatpak build] Updated APP_VERSION to $REMOTE_VERSION"
+          fi
+        fi
       - /app/venv/bin/python3 -c "from PIL import Image; img=Image.open('src/setiastro/images/astrosuitepro.png').resize((512,512), Image.LANCZOS); img.save('icon_512.png')"
       - install -Dm755 setiastrosuitepro-flatpak-launcher.sh /app/bin/setiastrosuitepro
       - install -Dm644 setiastrosuitepro.desktop /app/share/applications/com.setiastro.SetiAstroSuitePro.desktop

@@ -20,41 +20,39 @@ build_flatpak:
     - BUILD_VERSION=""
     - |
       if [[ "${CI_PIPELINE_SOURCE}" == "schedule" ]]; then
-        echo "Scheduled pipeline detected: checking upstream release against package registry"
+        echo "Scheduled pipeline detected: checking upstream updates.json against package registry"
 
-        GH_JSON="$(curl --fail --silent --show-error "https://api.github.com/repos/setiastro/setiastrosuitepro/releases/latest")"
-        LATEST_TAG="$(printf '%s' "${GH_JSON}" | jq -r '.tag_name // empty')"
-        if [[ -z "${LATEST_TAG}" ]]; then
-          echo "Could not determine latest upstream tag_name from GitHub releases API" >&2
+        UPDATES_JSON="$(curl --fail --silent --show-error 'https://raw.githubusercontent.com/setiastro/setiastrosuitepro/main/updates.json')"
+        REMOTE_VERSION="$(printf '%s' "${UPDATES_JSON}" | jq -r '.version // empty')"
+        if [[ -z "${REMOTE_VERSION}" ]]; then
+          echo "Could not determine version from upstream updates.json" >&2
           exit 1
         fi
-        LATEST_VERSION="${LATEST_TAG#v}"
 
         PKG_JSON="$(curl --silent --show-error --header "JOB-TOKEN: ${CI_JOB_TOKEN}" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages?package_type=generic&package_name=${PACKAGE_NAME}&order_by=created_at&sort=desc&per_page=1" || true)"
         LAST_BUILT_VERSION="$(printf '%s' "${PKG_JSON}" | jq -r 'if type=="array" and length>0 then .[0].version // "" else "" end' 2>/dev/null || true)"
 
-        echo "Latest upstream release: ${LATEST_TAG} (version ${LATEST_VERSION})"
+        echo "Latest upstream version from updates.json: ${REMOTE_VERSION}"
         if [[ -n "${LAST_BUILT_VERSION}" ]]; then
           echo "Most recent published package version: ${LAST_BUILT_VERSION}"
         else
           echo "No previously published package version found"
         fi
 
-        if [[ -n "${LAST_BUILT_VERSION}" && "${LAST_BUILT_VERSION}" == "${LATEST_VERSION}" ]]; then
-          echo "No new upstream release. Skipping scheduled build."
+        if [[ -n "${LAST_BUILT_VERSION}" && "${LAST_BUILT_VERSION}" == "${REMOTE_VERSION}" ]]; then
+          echo "No new upstream version. Skipping scheduled build."
           {
             echo "BUILD_STATUS=skipped"
-            echo "SKIP_REASON=No new upstream release"
-            echo "LATEST_UPSTREAM_TAG=${LATEST_TAG}"
-            echo "LATEST_UPSTREAM_VERSION=${LATEST_VERSION}"
+            echo "SKIP_REASON=No new upstream version"
+            echo "REMOTE_VERSION=${REMOTE_VERSION}"
             echo "LAST_BUILT_VERSION=${LAST_BUILT_VERSION}"
           } > build.env
           exit 0
         fi
 
-        BUILD_REF="${LATEST_TAG}"
-        BUILD_VERSION="${LATEST_VERSION}"
-        echo "New upstream release detected. Building ${BUILD_VERSION} from ${BUILD_REF}."
+        BUILD_REF="main"
+        BUILD_VERSION="${REMOTE_VERSION}"
+        echo "New upstream version detected: ${REMOTE_VERSION}. Building from main branch."
       fi
     - RELEASE_NUMBER="${PACKAGE_RELEASE:-${CI_PIPELINE_IID:-1}}"
     - |
