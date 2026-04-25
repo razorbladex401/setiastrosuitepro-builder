@@ -1,4 +1,4 @@
-# setiastro-wrapper
+# setiastrosuitepro-builder
 
 Wrapper repository to build Flatpak bundles for [Seti Astro Suite Pro](https://github.com/setiastro/setiastrosuitepro).
 
