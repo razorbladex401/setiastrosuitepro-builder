@@ -6,7 +6,15 @@ on:
       - "**"
     tags:
       - "*"
+    paths-ignore:
+      - "**/*.md"
+      - "LICENSE"
+      - "LICENSE.*"
   pull_request:
+    paths-ignore:
+      - "**/*.md"
+      - "LICENSE"
+      - "LICENSE.*"
   workflow_dispatch:
     inputs:
       upstream_ref:
