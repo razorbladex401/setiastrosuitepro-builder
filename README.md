@@ -52,7 +52,7 @@ The Flatpak includes 100+ Python packages installed via pip into `/app/venv`:
 **Utilities:** 
 - psutil 7.1.3, py-cpuinfo 9.0.0, pytz 2025.2, tzlocal 5.3.1, cloudpickle 3.1.2, fsspec 2025.12.0, and transitive dependencies
 
-## Prerequisites (Fedora/RHEL-like)
+## Prerequisites (Linux)
 
 The build script checks for the following commands at startup and will exit with
 an error if any are missing:
@@ -67,10 +67,24 @@ an error if any are missing:
 | `curl` | `curl` | Fetch upstream `updates.json` at build time |
 | `jq` | `jq` | Parse JSON from `updates.json` |
 
-Install all at once:
+Install all at once on Fedora and other RPM-based distros:
 
 ```bash
 sudo dnf install -y \
+  flatpak \
+  flatpak-builder \
+  git \
+  sed \
+  grep \
+  curl \
+  jq
+```
+
+Install all at once on Debian/Ubuntu:
+
+```bash
+sudo apt update
+sudo apt install -y \
   flatpak \
   flatpak-builder \
   git \
