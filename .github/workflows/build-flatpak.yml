@@ -61,8 +61,29 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p out/security
-          sudo freshclam || true
-          clamscan -r --infected --exclude-dir='^\.git$' --exclude-dir='^work$' --exclude-dir='^out$' . | tee out/security/source-clamscan.txt
+          CLAMAV_DB_DIR="${RUNNER_TEMP}/clamav-db"
+          CLAMAV_CFG="${RUNNER_TEMP}/freshclam.conf"
+          mkdir -p "${CLAMAV_DB_DIR}"
+
+            printf '%s\n' \
+              "DatabaseDirectory ${CLAMAV_DB_DIR}" \
+              "DatabaseMirror database.clamav.net" \
+              "Foreground yes" \
+              "UpdateLogFile ${RUNNER_TEMP}/freshclam.log" \
+              "Checks 1" > "${CLAMAV_CFG}"
+
+          freshclam --config-file="${CLAMAV_CFG}" || true
+
+          if ! find "${CLAMAV_DB_DIR}" -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
+            if [[ -d /var/lib/clamav ]] && find /var/lib/clamav -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
+              CLAMAV_DB_DIR="/var/lib/clamav"
+            else
+              echo "No ClamAV database files are available." >&2
+              exit 2
+            fi
+          fi
+
+          clamscan -r --infected --database="${CLAMAV_DB_DIR}" --exclude-dir='^\.git$' --exclude-dir='^work$' --exclude-dir='^out$' . | tee out/security/source-clamscan.txt
 
       - name: Compute build metadata and schedule gate
         id: meta
@@ -194,9 +215,30 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p out/security
-          sudo freshclam || true
+          CLAMAV_DB_DIR="${RUNNER_TEMP}/clamav-db"
+          CLAMAV_CFG="${RUNNER_TEMP}/freshclam.conf"
+          mkdir -p "${CLAMAV_DB_DIR}"
+
+          printf '%s\n' \
+            "DatabaseDirectory ${CLAMAV_DB_DIR}" \
+            "DatabaseMirror database.clamav.net" \
+            "Foreground yes" \
+            "UpdateLogFile ${RUNNER_TEMP}/freshclam.log" \
+            "Checks 1" > "${CLAMAV_CFG}"
+
+          freshclam --config-file="${CLAMAV_CFG}" || true
+
+          if ! find "${CLAMAV_DB_DIR}" -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
+            if [[ -d /var/lib/clamav ]] && find /var/lib/clamav -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
+              CLAMAV_DB_DIR="/var/lib/clamav"
+            else
+              echo "No ClamAV database files are available." >&2
+              exit 2
+            fi
+          fi
+
           BUNDLE_PATH="$(find out/flatpak -type f -name '*.flatpak' | head -n1)"
-          clamscan --infected "${BUNDLE_PATH}" | tee out/security/bundle-clamscan.txt
+          clamscan --infected --database="${CLAMAV_DB_DIR}" "${BUNDLE_PATH}" | tee out/security/bundle-clamscan.txt
 
       - name: Create or update release and upload asset
         env:

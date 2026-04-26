@@ -17,8 +17,30 @@ build_flatpak:
     - dnf -y install flatpak flatpak-builder curl git sed tar which jq clamav clamav-update
     - chmod +x scripts/*.sh packaging/setiastrosuitepro-flatpak-launcher.sh
     - mkdir -p out/security
-    - freshclam || true
-    - clamscan -r --infected --exclude-dir='^\.git$' --exclude-dir='^work$' --exclude-dir='^out$' . | tee out/security/source-clamscan.txt
+    - CLAMAV_DB_DIR="${CI_PROJECT_DIR}/.clamav-db"
+    - CLAMAV_CFG="${CI_PROJECT_DIR}/freshclam.conf"
+    - mkdir -p "${CLAMAV_DB_DIR}"
+    - |
+      cat > "${CLAMAV_CFG}" <<EOF
+      DatabaseDirectory ${CLAMAV_DB_DIR}
+      DatabaseMirror database.clamav.net
+      Foreground yes
+      UpdateLogFile ${CI_PROJECT_DIR}/freshclam.log
+      Checks 1
+      EOF
+    - freshclam --config-file="${CLAMAV_CFG}" || true
+    - |
+      if ! find "${CLAMAV_DB_DIR}" -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
+        if [[ -d /var/lib/clamav ]] && find /var/lib/clamav -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
+          CLAMAV_DB_DIR="/var/lib/clamav"
+        else
+          echo "No ClamAV database files are available." >&2
+          exit 2
+        fi
+      fi
+      echo "CLAMAV_DB_DIR=${CLAMAV_DB_DIR}" >> build.env
+    - source build.env
+    - clamscan -r --infected --database="${CLAMAV_DB_DIR}" --exclude-dir='^\.git$' --exclude-dir='^work$' --exclude-dir='^out$' . | tee out/security/source-clamscan.txt
     - BUILD_REF="${UPSTREAM_REF}"
     - BUILD_VERSION=""
     - |
@@ -73,7 +95,7 @@ build_flatpak:
     - BUNDLE_NAME="$(basename "${BUNDLE_PATH}")"
     - PKG_VERSION="$(echo "${BUNDLE_NAME}" | sed -E 's/^setiastrosuitepro-([^-]+)-.*/\1/')"
     - du -h "${BUNDLE_PATH}"
-    - clamscan --infected "${BUNDLE_PATH}" | tee out/security/bundle-clamscan.txt
+    - clamscan --infected --database="${CLAMAV_DB_DIR}" "${BUNDLE_PATH}" | tee out/security/bundle-clamscan.txt
     - PACKAGE_BASE_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${PACKAGE_NAME}/${PKG_VERSION}"
     - |
       curl --fail --insecure --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
