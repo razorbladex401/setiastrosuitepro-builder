@@ -134,7 +134,7 @@ build_flatpak:
         - "scripts/**/*"
         - "rpmbuild/**/*"
         - ".gitlab-ci.yml"
-    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
       when: manual
       allow_failure: false
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
