@@ -64,17 +64,17 @@ jobs:
           CLAMAV_DB_DIR="/var/lib/clamav"
 
           if ! find "${CLAMAV_DB_DIR}" -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
-            # Only refresh DB when signatures are absent; this avoids logger lock noise
-            # when a system freshclam service already owns the default log file.
-            sudo freshclam --stdout --checks=1 || true
-
-            if find "${CLAMAV_DB_DIR}" -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
-              echo "Using system ClamAV signatures from ${CLAMAV_DB_DIR}."
-            else
-              CLAMAV_DB_DIR="${RUNNER_TEMP}/clamav-db"
-              mkdir -p "${CLAMAV_DB_DIR}"
-              freshclam --datadir="${CLAMAV_DB_DIR}" --stdout --checks=1 || true
-            fi
+            CLAMAV_DB_DIR="${RUNNER_TEMP}/clamav-db"
+            CLAMAV_CFG="${RUNNER_TEMP}/freshclam.conf"
+            mkdir -p "${CLAMAV_DB_DIR}"
+            printf '%s\n' \
+              "DatabaseDirectory ${CLAMAV_DB_DIR}" \
+              "DatabaseMirror database.clamav.net" \
+              "Foreground true" \
+              "Checks 1" \
+              "UpdateLogFile ${RUNNER_TEMP}/freshclam.log" \
+              "LogTime true" > "${CLAMAV_CFG}"
+            freshclam --config-file="${CLAMAV_CFG}" || true
           fi
 
           if ! find "${CLAMAV_DB_DIR}" -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
@@ -217,17 +217,17 @@ jobs:
           CLAMAV_DB_DIR="/var/lib/clamav"
 
           if ! find "${CLAMAV_DB_DIR}" -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
-            # Only refresh DB when signatures are absent; this avoids logger lock noise
-            # when a system freshclam service already owns the default log file.
-            sudo freshclam --stdout --checks=1 || true
-
-            if find "${CLAMAV_DB_DIR}" -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
-              echo "Using system ClamAV signatures from ${CLAMAV_DB_DIR}."
-            else
-              CLAMAV_DB_DIR="${RUNNER_TEMP}/clamav-db"
-              mkdir -p "${CLAMAV_DB_DIR}"
-              freshclam --datadir="${CLAMAV_DB_DIR}" --stdout --checks=1 || true
-            fi
+            CLAMAV_DB_DIR="${RUNNER_TEMP}/clamav-db"
+            CLAMAV_CFG="${RUNNER_TEMP}/freshclam.conf"
+            mkdir -p "${CLAMAV_DB_DIR}"
+            printf '%s\n' \
+              "DatabaseDirectory ${CLAMAV_DB_DIR}" \
+              "DatabaseMirror database.clamav.net" \
+              "Foreground true" \
+              "Checks 1" \
+              "UpdateLogFile ${RUNNER_TEMP}/freshclam.log" \
+              "LogTime true" > "${CLAMAV_CFG}"
+            freshclam --config-file="${CLAMAV_CFG}" || true
           fi
 
           if ! find "${CLAMAV_DB_DIR}" -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
