@@ -2,8 +2,6 @@ name: Build Flatpak
 
 on:
   push:
-    branches:
-      - "**"
     tags:
       - "*"
     paths-ignore:
@@ -13,6 +11,10 @@ on:
       - "LICENSE"
       - "LICENSE.*"
   pull_request:
+    branches:
+      - "main"
+    types:
+      - closed
     paths-ignore:
       - "README.md"
       - "*.md"
@@ -48,6 +50,7 @@ jobs:
   build_flatpak:
     name: Build Flatpak
     runs-on: ubuntu-24.04
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
     outputs:
       build_status: ${{ steps.meta.outputs.build_status }}
       build_ref: ${{ steps.meta.outputs.build_ref }}
@@ -198,7 +201,7 @@ jobs:
     name: Publish to GitHub Release
     runs-on: ubuntu-24.04
     needs: build_flatpak
-    if: needs.build_flatpak.outputs.build_status != 'skipped' && github.event_name != 'pull_request'
+    if: needs.build_flatpak.outputs.build_status != 'skipped' && (github.event_name != 'pull_request' || github.event.pull_request.merged == true)
 
     steps:
       - name: Download built bundle

@@ -128,13 +128,7 @@ build_flatpak:
         - "scripts/**/*"
         - "rpmbuild/**/*"
         - ".gitlab-ci.yml"
-    - if: '$CI_PIPELINE_SOURCE == "push"'
-      changes:
-        - "packaging/**/*"
-        - "scripts/**/*"
-        - "rpmbuild/**/*"
-        - ".gitlab-ci.yml"
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       changes:
         - "packaging/**/*"
         - "scripts/**/*"
