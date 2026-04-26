@@ -62,17 +62,10 @@ jobs:
           set -euo pipefail
           mkdir -p out/security
           CLAMAV_DB_DIR="${RUNNER_TEMP}/clamav-db"
-          CLAMAV_CFG="${RUNNER_TEMP}/freshclam.conf"
           mkdir -p "${CLAMAV_DB_DIR}"
 
-            printf '%s\n' \
-              "DatabaseDirectory ${CLAMAV_DB_DIR}" \
-              "DatabaseMirror database.clamav.net" \
-              "Foreground yes" \
-              "UpdateLogFile ${RUNNER_TEMP}/freshclam.log" \
-              "Checks 1" > "${CLAMAV_CFG}"
-
-          freshclam --config-file="${CLAMAV_CFG}" || true
+          # Use explicit CLI flags to avoid runner-specific config parsing issues.
+          freshclam --datadir="${CLAMAV_DB_DIR}" --stdout --checks=1 || true
 
           if ! find "${CLAMAV_DB_DIR}" -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
             if [[ -d /var/lib/clamav ]] && find /var/lib/clamav -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
@@ -216,17 +209,10 @@ jobs:
           set -euo pipefail
           mkdir -p out/security
           CLAMAV_DB_DIR="${RUNNER_TEMP}/clamav-db"
-          CLAMAV_CFG="${RUNNER_TEMP}/freshclam.conf"
           mkdir -p "${CLAMAV_DB_DIR}"
 
-          printf '%s\n' \
-            "DatabaseDirectory ${CLAMAV_DB_DIR}" \
-            "DatabaseMirror database.clamav.net" \
-            "Foreground yes" \
-            "UpdateLogFile ${RUNNER_TEMP}/freshclam.log" \
-            "Checks 1" > "${CLAMAV_CFG}"
-
-          freshclam --config-file="${CLAMAV_CFG}" || true
+          # Use explicit CLI flags to avoid runner-specific config parsing issues.
+          freshclam --datadir="${CLAMAV_DB_DIR}" --stdout --checks=1 || true
 
           if ! find "${CLAMAV_DB_DIR}" -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
             if [[ -d /var/lib/clamav ]] && find /var/lib/clamav -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
