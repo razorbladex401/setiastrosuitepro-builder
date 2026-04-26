@@ -52,7 +52,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder curl git sed grep jq gh clamav
+          sudo apt-get install -y flatpak flatpak-builder curl git sed grep jq gh clamav clamav-freshclam
 
       - name: Ensure scripts are executable
         run: chmod +x scripts/*.sh packaging/setiastrosuitepro-flatpak-launcher.sh
@@ -61,19 +61,20 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p out/security
-          CLAMAV_DB_DIR="${RUNNER_TEMP}/clamav-db"
-          mkdir -p "${CLAMAV_DB_DIR}"
+          CLAMAV_DB_DIR="/var/lib/clamav"
 
-          # Use explicit CLI flags to avoid runner-specific config parsing issues.
-          freshclam --datadir="${CLAMAV_DB_DIR}" --stdout --checks=1 || true
+          # Refresh system DB first; default configs on hosted runners may require root paths.
+          sudo freshclam --stdout --checks=1 || true
 
           if ! find "${CLAMAV_DB_DIR}" -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
-            if [[ -d /var/lib/clamav ]] && find /var/lib/clamav -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
-              CLAMAV_DB_DIR="/var/lib/clamav"
-            else
-              echo "No ClamAV database files are available." >&2
-              exit 2
-            fi
+            CLAMAV_DB_DIR="${RUNNER_TEMP}/clamav-db"
+            mkdir -p "${CLAMAV_DB_DIR}"
+            freshclam --datadir="${CLAMAV_DB_DIR}" --stdout --checks=1 || true
+          fi
+
+          if ! find "${CLAMAV_DB_DIR}" -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
+            echo "No ClamAV database files are available." >&2
+            exit 2
           fi
 
           clamscan -r --infected --database="${CLAMAV_DB_DIR}" --exclude-dir='^\.git$' --exclude-dir='^work$' --exclude-dir='^out$' . | tee out/security/source-clamscan.txt
@@ -202,25 +203,26 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y clamav
+          sudo apt-get install -y clamav clamav-freshclam
 
       - name: Security scan (bundle, pre-publish)
         run: |
           set -euo pipefail
           mkdir -p out/security
-          CLAMAV_DB_DIR="${RUNNER_TEMP}/clamav-db"
-          mkdir -p "${CLAMAV_DB_DIR}"
+          CLAMAV_DB_DIR="/var/lib/clamav"
 
-          # Use explicit CLI flags to avoid runner-specific config parsing issues.
-          freshclam --datadir="${CLAMAV_DB_DIR}" --stdout --checks=1 || true
+          # Refresh system DB first; default configs on hosted runners may require root paths.
+          sudo freshclam --stdout --checks=1 || true
 
           if ! find "${CLAMAV_DB_DIR}" -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
-            if [[ -d /var/lib/clamav ]] && find /var/lib/clamav -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
-              CLAMAV_DB_DIR="/var/lib/clamav"
-            else
-              echo "No ClamAV database files are available." >&2
-              exit 2
-            fi
+            CLAMAV_DB_DIR="${RUNNER_TEMP}/clamav-db"
+            mkdir -p "${CLAMAV_DB_DIR}"
+            freshclam --datadir="${CLAMAV_DB_DIR}" --stdout --checks=1 || true
+          fi
+
+          if ! find "${CLAMAV_DB_DIR}" -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
+            echo "No ClamAV database files are available." >&2
+            exit 2
           fi
 
           BUNDLE_PATH="$(find out/flatpak -type f -name '*.flatpak' | head -n1)"
