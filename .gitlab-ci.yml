@@ -123,7 +123,17 @@ build_flatpak:
     expire_in: 7 days
   rules:
     - if: '$CI_COMMIT_TAG'
+      changes:
+        - "packaging/**/*"
+        - "scripts/**/*"
+        - "rpmbuild/**/*"
+        - ".gitlab-ci.yml"
     - if: '$CI_PIPELINE_SOURCE == "push"'
+      changes:
+        - "packaging/**/*"
+        - "scripts/**/*"
+        - "rpmbuild/**/*"
+        - ".gitlab-ci.yml"
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:
         - "packaging/**/*"
@@ -151,3 +161,8 @@ release_flatpak:
           url: '$BUNDLE_URL'
   rules:
     - if: '$CI_COMMIT_TAG'
+      changes:
+        - "packaging/**/*"
+        - "scripts/**/*"
+        - "rpmbuild/**/*"
+        - ".gitlab-ci.yml"
