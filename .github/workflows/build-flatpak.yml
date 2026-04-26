@@ -52,10 +52,17 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder curl git sed grep jq gh
+          sudo apt-get install -y flatpak flatpak-builder curl git sed grep jq gh clamav
 
       - name: Ensure scripts are executable
         run: chmod +x scripts/*.sh packaging/setiastrosuitepro-flatpak-launcher.sh
+
+      - name: Security scan (source, pre-build)
+        run: |
+          set -euo pipefail
+          mkdir -p out/security
+          sudo freshclam || true
+          clamscan -r --infected --exclude-dir='^\.git$' --exclude-dir='^work$' --exclude-dir='^out$' . | tee out/security/source-clamscan.txt
 
       - name: Compute build metadata and schedule gate
         id: meta
@@ -176,6 +183,20 @@ jobs:
         with:
           name: flatpak-bundle
           path: out/flatpak
+
+      - name: Install scanner dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y clamav
+
+      - name: Security scan (bundle, pre-publish)
+        run: |
+          set -euo pipefail
+          mkdir -p out/security
+          sudo freshclam || true
+          BUNDLE_PATH="$(find out/flatpak -type f -name '*.flatpak' | head -n1)"
+          clamscan --infected "${BUNDLE_PATH}" | tee out/security/bundle-clamscan.txt
 
       - name: Create or update release and upload asset
         env:

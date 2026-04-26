@@ -116,6 +116,12 @@ It mirrors the GitLab build flow:
 - Builds use the same `scripts/build_flatpak.sh` wrapper.
 - Non-PR runs publish the resulting `.flatpak` bundle to GitHub Release assets.
 
+Security scanning in CI (best-practice two-stage gate):
+
+- Source scan during build using ClamAV (fail pipeline on detection).
+- Final `.flatpak` bundle scan before publishing/release upload.
+- Scan reports are stored as CI artifacts (`out/security/*.txt`).
+
 Release behavior in GitHub:
 
 - Tag-triggered runs publish to that tag's release.

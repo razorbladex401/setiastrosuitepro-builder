@@ -14,8 +14,11 @@ build_flatpak:
   timeout: 120 minutes
   script:
     - echo "BUILD_STATUS=started" > build.env
-    - dnf -y install flatpak flatpak-builder curl git sed tar which jq
+    - dnf -y install flatpak flatpak-builder curl git sed tar which jq clamav clamav-update
     - chmod +x scripts/*.sh packaging/setiastrosuitepro-flatpak-launcher.sh
+    - mkdir -p out/security
+    - freshclam || true
+    - clamscan -r --infected --exclude-dir='^\.git$' --exclude-dir='^work$' --exclude-dir='^out$' . | tee out/security/source-clamscan.txt
     - BUILD_REF="${UPSTREAM_REF}"
     - BUILD_VERSION=""
     - |
@@ -70,6 +73,7 @@ build_flatpak:
     - BUNDLE_NAME="$(basename "${BUNDLE_PATH}")"
     - PKG_VERSION="$(echo "${BUNDLE_NAME}" | sed -E 's/^setiastrosuitepro-([^-]+)-.*/\1/')"
     - du -h "${BUNDLE_PATH}"
+    - clamscan --infected "${BUNDLE_PATH}" | tee out/security/bundle-clamscan.txt
     - PACKAGE_BASE_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${PACKAGE_NAME}/${PKG_VERSION}"
     - |
       curl --fail --insecure --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
@@ -89,6 +93,7 @@ build_flatpak:
   artifacts:
     paths:
       - out/flatpak/*.flatpak
+      - out/security/*.txt
     reports:
       dotenv: build.env
     expire_in: 7 days
