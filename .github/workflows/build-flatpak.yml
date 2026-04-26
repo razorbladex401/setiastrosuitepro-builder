@@ -61,22 +61,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p out/security
+
+          # Stop the background service so it doesn't hold the log file lock,
+          # then update signatures into the system DB directory as root.
+          sudo systemctl stop clamav-freshclam 2>/dev/null || true
+          sudo freshclam --stdout || true
+
           CLAMAV_DB_DIR="/var/lib/clamav"
-
-          if ! find "${CLAMAV_DB_DIR}" -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
-            CLAMAV_DB_DIR="${RUNNER_TEMP}/clamav-db"
-            CLAMAV_CFG="${RUNNER_TEMP}/freshclam.conf"
-            mkdir -p "${CLAMAV_DB_DIR}"
-            printf '%s\n' \
-              "DatabaseDirectory ${CLAMAV_DB_DIR}" \
-              "DatabaseMirror database.clamav.net" \
-              "Foreground true" \
-              "Checks 1" \
-              "UpdateLogFile ${RUNNER_TEMP}/freshclam.log" \
-              "LogTime true" > "${CLAMAV_CFG}"
-            freshclam --config-file="${CLAMAV_CFG}" || true
-          fi
-
           if ! find "${CLAMAV_DB_DIR}" -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
             echo "No ClamAV database files are available." >&2
             exit 2
@@ -214,22 +205,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p out/security
+
+          # Stop the background service so it doesn't hold the log file lock,
+          # then update signatures into the system DB directory as root.
+          sudo systemctl stop clamav-freshclam 2>/dev/null || true
+          sudo freshclam --stdout || true
+
           CLAMAV_DB_DIR="/var/lib/clamav"
-
-          if ! find "${CLAMAV_DB_DIR}" -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
-            CLAMAV_DB_DIR="${RUNNER_TEMP}/clamav-db"
-            CLAMAV_CFG="${RUNNER_TEMP}/freshclam.conf"
-            mkdir -p "${CLAMAV_DB_DIR}"
-            printf '%s\n' \
-              "DatabaseDirectory ${CLAMAV_DB_DIR}" \
-              "DatabaseMirror database.clamav.net" \
-              "Foreground true" \
-              "Checks 1" \
-              "UpdateLogFile ${RUNNER_TEMP}/freshclam.log" \
-              "LogTime true" > "${CLAMAV_CFG}"
-            freshclam --config-file="${CLAMAV_CFG}" || true
-          fi
-
           if ! find "${CLAMAV_DB_DIR}" -maxdepth 1 -type f \( -name '*.cvd' -o -name '*.cld' -o -name '*.cud' \) | grep -q .; then
             echo "No ClamAV database files are available." >&2
             exit 2
