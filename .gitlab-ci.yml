@@ -20,6 +20,8 @@ build_flatpak:
     - CLAMAV_DB_DIR="${CI_PROJECT_DIR}/.clamav-db"
     - CLAMAV_CFG="${CI_PROJECT_DIR}/freshclam.conf"
     - mkdir -p "${CLAMAV_DB_DIR}"
+    - chown -R 998:998 "${CLAMAV_DB_DIR}" || true
+    - chmod 0777 "${CLAMAV_DB_DIR}"
     - |
       cat > "${CLAMAV_CFG}" <<EOF
       DatabaseDirectory ${CLAMAV_DB_DIR}
