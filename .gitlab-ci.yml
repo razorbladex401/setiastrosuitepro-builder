@@ -81,7 +81,7 @@ build_flatpak:
         BUILD_VERSION="${REMOTE_VERSION}"
         echo "New upstream version detected: ${REMOTE_VERSION}. Building from main branch."
       fi
-    - RELEASE_NUMBER="${PACKAGE_RELEASE:-${CI_PIPELINE_IID:-1}}"
+    - RELEASE_NUMBER="${PACKAGE_RELEASE:-$(date -u +%Y%m%d)}"
     - |
       if [[ -n "${BUILD_VERSION}" ]]; then
         ./scripts/build_flatpak.sh --ref "${BUILD_REF}" --version "${BUILD_VERSION}" --release "${RELEASE_NUMBER}" --branch "${FLATPAK_BRANCH}"

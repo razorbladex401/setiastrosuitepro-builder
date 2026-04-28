@@ -1,6 +1,6 @@
 # setiastrosuitepro-builder
 
-Unofficial repository to build Flatpak bundles for [Seti Astro Suite Pro](https://github.com/setiastro/setiastrosuitepro). I liked the tool and wanted to make it easy for myself to install on Fedora 43. Originally was going to create an RPM build process but that comes with it's own dependencies and issues so I settled with a flatpak. Flatpaks are isolated sandboxes which means the host os needs very little to get them running.
+Unofficial repository to build Flatpak bundles for [Seti Astro Suite Pro](https://github.com/setiastro/setiastrosuitepro). I liked the tool and wanted to make it easy for myself to install on Fedora 43 which comes with python 3.14. I'm not a fan of maintaining two different python versions on the same system so decided to create a flatpak that's self-contained.
 
 ## What this does
 
@@ -221,8 +221,7 @@ upstream version detected or explicitly provided via `--version` in the build sc
 - `UPSTREAM_REF`: upstream git ref to build (default: `main`). In scheduled builds,
   this is automatically set to `main` after version checks; in manual/tag builds, it
   can be overridden to build from a specific ref or tag.
-- `PACKAGE_RELEASE`: Flatpak bundle release component (default: GitLab `CI_PIPELINE_IID`
-  or GitHub `GITHUB_RUN_NUMBER`). Included in the bundle filename for differentiation.
+- `PACKAGE_RELEASE`: Flatpak bundle release component (default: build date in `YYYYMMDD` format, UTC). Included in the bundle filename for differentiation. Can be overridden manually for reruns or local builds.
 - `FLATPAK_BRANCH`: Flatpak branch name (default: `stable`). Used by `flatpak-builder`
   to determine the final bundle branch.
 

@@ -28,7 +28,7 @@ on:
         required: false
         default: "main"
       package_release:
-        description: "Release suffix for bundle filename (default: run number)"
+        description: "Release suffix for bundle filename (default: build date YYYYMMDD)"
         required: false
         default: ""
       flatpak_branch:
@@ -131,10 +131,10 @@ jobs:
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             INPUT_RELEASE="${{ inputs.package_release || '' }}"
             INPUT_BRANCH="${{ inputs.flatpak_branch || '' }}"
-            RELEASE_NUMBER="${INPUT_RELEASE:-${PACKAGE_RELEASE:-${GITHUB_RUN_NUMBER}}}"
+            RELEASE_NUMBER="${INPUT_RELEASE:-${PACKAGE_RELEASE:-$(date -u +%Y%m%d)}}"
             EFFECTIVE_BRANCH="${INPUT_BRANCH:-${FLATPAK_BRANCH}}"
           else
-            RELEASE_NUMBER="${PACKAGE_RELEASE:-${GITHUB_RUN_NUMBER}}"
+            RELEASE_NUMBER="${PACKAGE_RELEASE:-$(date -u +%Y%m%d)}"
             EFFECTIVE_BRANCH="${FLATPAK_BRANCH}"
           fi
 
