@@ -1,6 +1,6 @@
 # setiastrosuitepro-builder
 
-Unofficial repository to build Flatpak bundles for [Seti Astro Suite Pro](https://github.com/setiastro/setiastrosuitepro). I liked the tool and wanted to make it easy for myself to install on Fedora 43 which comes with python 3.14. I'm not a fan of maintaining two different python versions on the same system so decided to create a flatpak that's self-contained.
+Unofficial repository to build Flatpak bundles for [Seti Astro Suite Pro](https://github.com/setiastro/setiastrosuitepro). I liked the tool and wanted to make it easy for myself to install on Fedora 43. Originally was going to create an RPM build process but that comes with it's own dependencies and issues so I settled with a flatpak. Flatpaks are isolated sandboxes which means the host os needs very little to get them running.
 
 ## What this does
 
