@@ -251,22 +251,6 @@ Release behavior in GitHub:
   where `<version>` is extracted from the built bundle filename.
 - GitHub Release assets contain the `.flatpak` bundle and security scan reports.
 
-### Flatpak Repository Publishing
-
-The workflow includes an automatic `publish_flatpak_repo` job that:
-
-1. **Exports the bundle** to an OSTree repository structure
-2. **Signs the repository metadata** using the GPG key stored in `FLATPAK_GPG_KEY` secret
-3. **Deploys to GitHub Pages** via the `gh-pages` branch, serving the repository at `https://yourusername.github.io/setiastrosuitepro-builder/`
-
-This enables end users to add your Flatpak remote and receive automatic updates. The repository is GPG-signed for security verification.
-
-**Prerequisites for repository publishing:**
-- `FLATPAK_GPG_KEY`: The armored private GPG key (ed25519 recommended)
-- `FLATPAK_GPG_PASSPHRASE`: The passphrase protecting the key (if key is passphrase-protected)
-- `FLATPAK_GPG_KEY_ID`: The GPG key ID for signing (optional; auto-detected if omitted)
-- GitHub Pages enabled in repository settings (Settings → Pages → Source: gh-pages branch)
-
 ### Triggering a release build
 
 Push a tag to trigger a tagged release:
