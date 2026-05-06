@@ -383,8 +383,13 @@ jobs:
 
           # Include flatpakrepo/public key metadata if present.
           FLATPAKREPO_FILE="$(find . -maxdepth 1 -type f -name '*.flatpakrepo' | head -n1 || true)"
+          FLATPAKREPO_BASENAME=""
           if [[ -n "${FLATPAKREPO_FILE}" ]]; then
             cp "${FLATPAKREPO_FILE}" "${SITE_DIR}/"
+            FLATPAKREPO_BASENAME="$(basename "${FLATPAKREPO_FILE}")"
+          fi
+          if [[ -z "${FLATPAKREPO_BASENAME}" ]]; then
+            FLATPAKREPO_BASENAME="com.razorbladex401.SetiAstroSuitePro.flatpakrepo"
           fi
 
           if [[ -f public.gpg ]]; then
@@ -392,18 +397,35 @@ jobs:
           fi
 
           # Add a minimal index so opening the root URL in a browser does not return 404.
-          cat > "${SITE_DIR}/index.html" <<'EOF'
+          cat > "${SITE_DIR}/index.html" <<EOF
           <!doctype html>
           <html lang="en">
           <head>
             <meta charset="utf-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1" />
             <title>SetiAstro Flatpak Repository</title>
+            <style>
+              body { font-family: sans-serif; max-width: 920px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+              code, pre { background: #f5f5f5; border-radius: 6px; }
+              code { padding: 0.1rem 0.35rem; }
+              pre { padding: 0.8rem; overflow-x: auto; }
+            </style>
           </head>
           <body>
             <h1>SetiAstro Flatpak Repository</h1>
             <p>This is an OSTree Flatpak repository endpoint.</p>
-            <p>Use your distributed <code>.flatpakrepo</code> file to add the remote.</p>
+            <h2>Add This Repository</h2>
+            <pre><code>flatpak remote-add --if-not-exists razorbladex401 \
+  https://razorbladex401.github.io/setiastrosuitepro-builder/${FLATPAKREPO_BASENAME}</code></pre>
+
+            <h2>Install The App</h2>
+            <pre><code>flatpak install razorbladex401 com.razorbladex401.SetiAstroSuitePro</code></pre>
+
+            <h2>Update Later</h2>
+            <pre><code>flatpak update</code></pre>
+
+            <p>If you already added the remote, refresh metadata with:</p>
+            <pre><code>flatpak update --appstream razorbladex401</code></pre>
           </body>
           </html>
           EOF
