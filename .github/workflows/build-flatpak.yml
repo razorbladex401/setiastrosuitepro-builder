@@ -371,10 +371,47 @@ jobs:
             --ostree-verbose \
             "${REPO_DIR}"
 
+      - name: Prepare Pages site content
+        run: |
+          set -euo pipefail
+
+          SITE_DIR="pages-site"
+          mkdir -p "${SITE_DIR}"
+
+          # Publish the OSTree repository at the site root.
+          cp -a repo/. "${SITE_DIR}/"
+
+          # Include flatpakrepo/public key metadata if present.
+          FLATPAKREPO_FILE="$(find . -maxdepth 1 -type f -name '*.flatpakrepo' | head -n1 || true)"
+          if [[ -n "${FLATPAKREPO_FILE}" ]]; then
+            cp "${FLATPAKREPO_FILE}" "${SITE_DIR}/"
+          fi
+
+          if [[ -f public.gpg ]]; then
+            cp public.gpg "${SITE_DIR}/"
+          fi
+
+          # Add a minimal index so opening the root URL in a browser does not return 404.
+          cat > "${SITE_DIR}/index.html" <<'EOF'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>SetiAstro Flatpak Repository</title>
+          </head>
+          <body>
+            <h1>SetiAstro Flatpak Repository</h1>
+            <p>This is an OSTree Flatpak repository endpoint.</p>
+            <p>Use your distributed <code>.flatpakrepo</code> file to add the remote.</p>
+          </body>
+          </html>
+          EOF
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./repo
+          path: ./pages-site
 
       - name: Deploy to GitHub Pages
         id: deployment
