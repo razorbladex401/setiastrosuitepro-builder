@@ -135,33 +135,6 @@ flatpak install setiastro com.razorbladex401.SetiAstroSuitePro
 
 The remote is GPG-signed for security. Updates are automatically available via `flatpak update`.
 
-### From Local Build
-
-For local development or to test before official release:
-
-```bash
-sudo flatpak install out/setiastrosuitepro-<version>-<release>.flatpak
-```
-
-### Repository Management
-
-**GPG Key Verification:**
-The public GPG key used to sign repository metadata is included in this repository as `public.gpg`. Users can verify this key when adding the remote:
-
-```bash
-flatpak remote-add --if-not-exists --gpg-import=public.gpg razorbladex401 \
-  https://razorbladex401.github.io/setiastrosuitepro-builder/
-```
-
-**Removing the remote:**
-```bash
-flatpak remote-remove setiastro
-```
-
-**Uninstalling the app:**
-```bash
-flatpak uninstall com.razorbladex401.SetiAstroSuitePro
-```
 
 ## Notes
 
