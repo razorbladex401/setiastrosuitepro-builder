@@ -299,7 +299,7 @@ jobs:
           
           # Initialize an OSTree repository if it doesn't exist
           if [[ ! -d "${REPO_DIR}/objects" ]]; then
-            ostree init-repo --mode=archive "${REPO_DIR}"
+            ostree init --mode=archive --repo="${REPO_DIR}"
           fi
 
       - name: Export Flatpak bundle to OSTree repository
@@ -308,8 +308,8 @@ jobs:
           BUNDLE_PATH="$(find out/flatpak -type f -name '*.flatpak' | head -n1)"
           REPO_DIR="repo"
           
-          # Export the bundle to the repository
-          flatpak build-bundle "${REPO_DIR}" "${BUNDLE_PATH}" --update-appstream
+          # Import the bundle into the OSTree repository
+          flatpak build-import-bundle "${REPO_DIR}" "${BUNDLE_PATH}"
 
       - name: Import GPG key and sign repository
         env:
