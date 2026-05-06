@@ -130,7 +130,7 @@ Add the Razorbladex401 Flatpak remote and install:
 flatpak remote-add --if-not-exists razorbladex401 \
   https://razorbladex401.github.io/setiastrosuitepro-builder/com.razorbladex401.SetiAstroSuitePro.flatpakrepo
 
-flatpak install setiastro com.razorbladex401.SetiAstroSuitePro
+flatpak install razorbladex401 com.setiastro.SetiAstroSuitePro
 ```
 
 The remote is GPG-signed for security. Updates are automatically available via `flatpak update`.
