@@ -415,8 +415,7 @@ jobs:
             <h1>SetiAstro Flatpak Repository</h1>
             <p>This is an OSTree Flatpak repository endpoint.</p>
             <h2>Add This Repository</h2>
-            <pre><code>flatpak remote-add --if-not-exists razorbladex401 \
-  https://razorbladex401.github.io/setiastrosuitepro-builder/${FLATPAKREPO_BASENAME}</code></pre>
+            <pre><code>flatpak remote-add --if-not-exists razorbladex401 https://razorbladex401.github.io/setiastrosuitepro-builder/${FLATPAKREPO_BASENAME}</code></pre>
 
             <h2>Install The App</h2>
             <pre><code>flatpak install razorbladex401 com.razorbladex401.SetiAstroSuitePro</code></pre>
