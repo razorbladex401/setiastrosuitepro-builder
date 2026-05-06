@@ -320,13 +320,22 @@ jobs:
           set -euo pipefail
           REPO_DIR="repo"
           
-          # Import the GPG key
+          # Configure gpg for non-interactive use in CI runners.
           mkdir -p ~/.gnupg
           chmod 700 ~/.gnupg
-          echo "${GPG_KEY_SECRET}" | gpg --import --batch --no-tty
+          {
+            echo "pinentry-mode loopback"
+            echo "batch"
+            echo "no-tty"
+          } > ~/.gnupg/gpg.conf
+          echo "allow-loopback-pinentry" > ~/.gnupg/gpg-agent.conf
+          gpgconf --kill gpg-agent || true
+
+          # Import the GPG key.
+          echo "${GPG_KEY_SECRET}" | gpg --batch --no-tty --pinentry-mode loopback --import
           
           # Get the key ID from secret or derive from imported key
-          if [[ -n "${GPG_KEY_ID}" ]]; then
+          if [[ -n "${GPG_KEY_ID:-}" ]]; then
             KEY_ID="${GPG_KEY_ID}"
           else
             # Fallback: use the fingerprint of the imported key
@@ -336,6 +345,16 @@ jobs:
           if [[ -z "${KEY_ID}" ]]; then
             echo "Error: Could not determine GPG key ID" >&2
             exit 1
+          fi
+
+          # Prime gpg-agent in non-interactive mode when a passphrase is set.
+          if [[ -n "${GPG_KEY_PASSPHRASE:-}" ]]; then
+            printf 'ci-signing-check' > /tmp/gpg-probe.txt
+            gpg --batch --yes --no-tty --pinentry-mode loopback \
+              --passphrase "${GPG_KEY_PASSPHRASE}" \
+              --local-user "${KEY_ID}" \
+              --output /tmp/gpg-probe.sig \
+              --sign /tmp/gpg-probe.txt
           fi
           
           # Sign the repository metadata
