@@ -127,7 +127,7 @@ Artifacts are copied to:
 Add the Razorbladex401 Flatpak remote and install:
 
 ```bash
-flatpak remote-add --if-not-exists setiastro \
+flatpak remote-add --if-not-exists razorbladex401 \
   https://razorbladex401.github.io/setiastrosuitepro-builder/com.razorbladex401.SetiAstroSuitePro.flatpakrepo
 
 flatpak install setiastro com.razorbladex401.SetiAstroSuitePro
