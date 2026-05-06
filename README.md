@@ -122,15 +122,15 @@ Artifacts are copied to:
 
 ## Install
 
-### From Self-Hosted Repository (Recommended)
+### Flatpak Repository (Recommended)
 
-Add the Seti Astro Suite Pro Flatpak remote and install:
+Add the Razorbladex401 Flatpak remote and install:
 
 ```bash
 flatpak remote-add --if-not-exists setiastro \
-  https://razorbladex401.github.io/setiastrosuitepro-builder/com.setiastro.SetiAstroSuitePro.flatpakrepo
+  https://razorbladex401.github.io/setiastrosuitepro-builder/com.razorbladex401.SetiAstroSuitePro.flatpakrepo
 
-flatpak install setiastro com.setiastro.SetiAstroSuitePro
+flatpak install setiastro com.razorbladex401.SetiAstroSuitePro
 ```
 
 The remote is GPG-signed for security. Updates are automatically available via `flatpak update`.
@@ -143,23 +143,13 @@ For local development or to test before official release:
 sudo flatpak install out/setiastrosuitepro-<version>-<release>.flatpak
 ```
 
-## Self-Hosted Flatpak Repository
-
-This project publishes Flatpak bundles to a GitHub Pages-hosted OSTree repository, enabling easy installation and automatic updates for end users without relying on Flathub.
-
-### How it works
-
-- **OSTree repository**: Each build exports the Flatpak bundle into an OSTree repository structure, hosted on GitHub Pages at `https://razorbladex401.github.io/setiastrosuitepro-builder/`
-- **GPG signing**: Repository metadata is cryptographically signed using an ed25519 key, verifying the authenticity and integrity of published releases
-- **Updates**: After adding the remote, users get security updates via `flatpak update` without manual downloads
-
 ### Repository Management
 
 **GPG Key Verification:**
 The public GPG key used to sign repository metadata is included in this repository as `public.gpg`. Users can verify this key when adding the remote:
 
 ```bash
-flatpak remote-add --if-not-exists --gpg-import=public.gpg setiastro \
+flatpak remote-add --if-not-exists --gpg-import=public.gpg razorbladex401 \
   https://razorbladex401.github.io/setiastrosuitepro-builder/
 ```
 
@@ -170,7 +160,7 @@ flatpak remote-remove setiastro
 
 **Uninstalling the app:**
 ```bash
-flatpak uninstall com.setiastro.SetiAstroSuitePro
+flatpak uninstall com.razorbladex401.SetiAstroSuitePro
 ```
 
 ## Notes
