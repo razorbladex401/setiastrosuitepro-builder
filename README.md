@@ -128,7 +128,7 @@ Add the Razorbladex401 Flatpak remote and install:
 
 ```bash
 flatpak remote-add --if-not-exists razorbladex401 \
-  https://razorbladex401.github.io/setiastrosuitepro-builder/com.razorbladex401.SetiAstroSuitePro.flatpakrepo
+  https://razorbladex401.github.io/setiastrosuitepro-builder/razorbladex401.flatpakrepo
 
 flatpak install razorbladex401 com.setiastro.SetiAstroSuitePro
 ```

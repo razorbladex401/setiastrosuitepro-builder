@@ -389,7 +389,7 @@ jobs:
             FLATPAKREPO_BASENAME="$(basename "${FLATPAKREPO_FILE}")"
           fi
           if [[ -z "${FLATPAKREPO_BASENAME}" ]]; then
-            FLATPAKREPO_BASENAME="com.razorbladex401.SetiAstroSuitePro.flatpakrepo"
+            FLATPAKREPO_BASENAME="razorbladex401.flatpakrepo"
           fi
 
           if [[ -f public.gpg ]]; then
