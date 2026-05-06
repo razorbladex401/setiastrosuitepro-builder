@@ -273,7 +273,12 @@ jobs:
     needs: build_flatpak
     if: needs.build_flatpak.outputs.build_status != 'skipped' && (github.event_name != 'pull_request' || github.event.pull_request.merged == true)
     permissions:
-      contents: write
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout repository
@@ -366,9 +371,11 @@ jobs:
             --ostree-verbose \
             "${REPO_DIR}"
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ github.token }}
-          publish_dir: ./repo
-          cname: false
+          path: ./repo
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
