@@ -1,0 +1,6 @@
+[Flatpak Repo]
+Title=Seti Astro Suite Pro
+Url=https://razorbladex401.github.io/setiastrosuitepro-builder
+GPGKey=file:///app/etc/flatpak/remotes.d/com.setiastro.SetiAstroSuitePro.gpg
+Homepage=https://github.com/setiastro/setiastrosuitepro
+Icon=https://raw.githubusercontent.com/setiastro/setiastrosuitepro/main/src/setiastro/images/setiastro-icon.svg

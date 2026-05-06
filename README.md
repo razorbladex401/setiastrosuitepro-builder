@@ -121,8 +121,56 @@ Artifacts are copied to:
 - `out/flatpak/`
 
 ## Install
+
+### From Self-Hosted Repository (Recommended)
+
+Add the Seti Astro Suite Pro Flatpak remote and install:
+
 ```bash
-sudo flatpak install out/setiastrosuitepro-<version>-1.flatpak
+flatpak remote-add --if-not-exists setiastro \
+  https://razorbladex401.github.io/setiastrosuitepro-builder/com.setiastro.SetiAstroSuitePro.flatpakrepo
+
+flatpak install setiastro com.setiastro.SetiAstroSuitePro
+```
+
+The remote is GPG-signed for security. Updates are automatically available via `flatpak update`.
+
+### From Local Build
+
+For local development or to test before official release:
+
+```bash
+sudo flatpak install out/setiastrosuitepro-<version>-<release>.flatpak
+```
+
+## Self-Hosted Flatpak Repository
+
+This project publishes Flatpak bundles to a GitHub Pages-hosted OSTree repository, enabling easy installation and automatic updates for end users without relying on Flathub.
+
+### How it works
+
+- **OSTree repository**: Each build exports the Flatpak bundle into an OSTree repository structure, hosted on GitHub Pages at `https://razorbladex401.github.io/setiastrosuitepro-builder/`
+- **GPG signing**: Repository metadata is cryptographically signed using an ed25519 key, verifying the authenticity and integrity of published releases
+- **Updates**: After adding the remote, users get security updates via `flatpak update` without manual downloads
+
+### Repository Management
+
+**GPG Key Verification:**
+The public GPG key used to sign repository metadata is included in this repository as `public.gpg`. Users can verify this key when adding the remote:
+
+```bash
+flatpak remote-add --if-not-exists --gpg-import=public.gpg setiastro \
+  https://razorbladex401.github.io/setiastrosuitepro-builder/
+```
+
+**Removing the remote:**
+```bash
+flatpak remote-remove setiastro
+```
+
+**Uninstalling the app:**
+```bash
+flatpak uninstall com.setiastro.SetiAstroSuitePro
 ```
 
 ## Notes
@@ -202,6 +250,22 @@ Release behavior in GitHub:
 - Non-tag branch/push runs publish/update a release named `flatpak-v<version>`,
   where `<version>` is extracted from the built bundle filename.
 - GitHub Release assets contain the `.flatpak` bundle and security scan reports.
+
+### Flatpak Repository Publishing
+
+The workflow includes an automatic `publish_flatpak_repo` job that:
+
+1. **Exports the bundle** to an OSTree repository structure
+2. **Signs the repository metadata** using the GPG key stored in `FLATPAK_GPG_KEY` secret
+3. **Deploys to GitHub Pages** via the `gh-pages` branch, serving the repository at `https://yourusername.github.io/setiastrosuitepro-builder/`
+
+This enables end users to add your Flatpak remote and receive automatic updates. The repository is GPG-signed for security verification.
+
+**Prerequisites for repository publishing:**
+- `FLATPAK_GPG_KEY`: The armored private GPG key (ed25519 recommended)
+- `FLATPAK_GPG_PASSPHRASE`: The passphrase protecting the key (if key is passphrase-protected)
+- `FLATPAK_GPG_KEY_ID`: The GPG key ID for signing (optional; auto-detected if omitted)
+- GitHub Pages enabled in repository settings (Settings → Pages → Source: gh-pages branch)
 
 ### Triggering a release build
 
