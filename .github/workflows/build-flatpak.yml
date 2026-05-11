@@ -469,6 +469,12 @@ jobs:
             <h2>Add This Repository</h2>
             <pre><code>flatpak remote-add --if-not-exists razorbladex401 https://razorbladex401.github.io/setiastrosuitepro-builder/${FLATPAKREPO_BASENAME}</code></pre>
 
+            <h2>Import Or Refresh Public Key</h2>
+            <p>Optional manual key import (the <code>.flatpakrepo</code> already includes this key):</p>
+            <pre><code>curl -fsSL https://razorbladex401.github.io/setiastrosuitepro-builder/public.gpg -o /tmp/razorbladex401-public.gpg
+            flatpak remote-modify --gpg-import=/tmp/razorbladex401-public.gpg razorbladex401</code></pre>
+            <p>Direct key URL: <a href="public.gpg">public.gpg</a></p>
+
             <h2>Install The App</h2>
             <pre><code>flatpak install razorbladex401 com.setiastro.SetiAstroSuitePro</code></pre>
 

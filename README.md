@@ -135,6 +135,13 @@ flatpak install razorbladex401 com.setiastro.SetiAstroSuitePro
 
 The remote is GPG-signed for security. Updates are automatically available via `flatpak update`.
 
+If you want to import or refresh the repository public key manually:
+
+```bash
+curl -fsSL https://razorbladex401.github.io/setiastrosuitepro-builder/public.gpg -o /tmp/razorbladex401-public.gpg
+flatpak remote-modify --gpg-import=/tmp/razorbladex401-public.gpg razorbladex401
+```
+
 
 ## Notes
 
