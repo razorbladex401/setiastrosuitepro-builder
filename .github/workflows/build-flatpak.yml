@@ -310,13 +310,58 @@ jobs:
           fi
 
       - name: Export Flatpak bundle to OSTree repository
+        env:
+          GPG_KEY_SECRET: ${{ secrets.FLATPAK_GPG_KEY }}
+          GPG_KEY_PASSPHRASE: ${{ secrets.FLATPAK_GPG_PASSPHRASE }}
+          GPG_KEY_ID: ${{ secrets.FLATPAK_GPG_KEY_ID }}
         run: |
           set -euo pipefail
           BUNDLE_PATH="$(find out/flatpak -type f -name '*.flatpak' | head -n1)"
           REPO_DIR="repo"
+
+          # Configure gpg for non-interactive use in CI runners.
+          mkdir -p ~/.gnupg
+          chmod 700 ~/.gnupg
+          {
+            echo "pinentry-mode loopback"
+            echo "batch"
+            echo "no-tty"
+          } > ~/.gnupg/gpg.conf
+          echo "allow-loopback-pinentry" > ~/.gnupg/gpg-agent.conf
+          gpgconf --kill gpg-agent || true
+
+          # Import the GPG key before importing/signing the bundle commit.
+          echo "${GPG_KEY_SECRET}" | gpg --batch --no-tty --pinentry-mode loopback --import
+
+          # Get key ID from secret or derive from imported key.
+          if [[ -n "${GPG_KEY_ID:-}" ]]; then
+            KEY_ID="${GPG_KEY_ID}"
+          else
+            KEY_ID="$(gpg --list-keys --with-colons | grep pub | cut -d: -f5 | head -n1)"
+          fi
+
+          if [[ -z "${KEY_ID}" ]]; then
+            echo "Error: Could not determine GPG key ID" >&2
+            exit 1
+          fi
+
+          # Prime gpg-agent in non-interactive mode when a passphrase is set.
+          if [[ -n "${GPG_KEY_PASSPHRASE:-}" ]]; then
+            printf 'ci-signing-check' > /tmp/gpg-probe.txt
+            gpg --batch --yes --no-tty --pinentry-mode loopback \
+              --passphrase "${GPG_KEY_PASSPHRASE}" \
+              --local-user "${KEY_ID}" \
+              --output /tmp/gpg-probe.sig \
+              --sign /tmp/gpg-probe.txt
+          fi
           
-          # Import the bundle into the OSTree repository
-          flatpak build-import-bundle "${REPO_DIR}" "${BUNDLE_PATH}"
+          # Import bundle and sign the app commit at import time.
+          flatpak build-import-bundle \
+            --gpg-sign="${KEY_ID}" \
+            --gpg-homedir="${HOME}/.gnupg" \
+            --update-appstream \
+            "${REPO_DIR}" \
+            "${BUNDLE_PATH}"
 
       - name: Import GPG key and sign repository
         env:
@@ -364,25 +409,37 @@ jobs:
               --sign /tmp/gpg-probe.txt
           fi
 
-          # Sign the exported app commit so clients with gpg-verify enabled can pull it.
-          APP_REF="app/com.setiastro.SetiAstroSuitePro/x86_64/stable"
-          APP_COMMIT="$(ostree --repo="${REPO_DIR}" rev-parse "${APP_REF}")"
-          if [[ -z "${APP_COMMIT}" ]]; then
-            echo "Error: Could not resolve commit for ${APP_REF}" >&2
-            exit 1
-          fi
-
-          ostree --repo="${REPO_DIR}" gpg-sign \
-            --gpg-homedir="${HOME}/.gnupg" \
-            "${APP_COMMIT}" \
-            "${KEY_ID}"
-          
           # Sign the repository metadata
           flatpak build-update-repo \
             --gpg-sign="${KEY_ID}" \
             --gpg-homedir="${HOME}/.gnupg" \
             --ostree-verbose \
             "${REPO_DIR}"
+
+      - name: Verify app commit is GPG-signed
+        run: |
+          set -euo pipefail
+          REPO_DIR="repo"
+          APP_REF="app/com.setiastro.SetiAstroSuitePro/x86_64/stable"
+
+          APP_COMMIT="$(ostree --repo="${REPO_DIR}" rev-parse "${APP_REF}")"
+          if [[ -z "${APP_COMMIT}" ]]; then
+            echo "Error: Could not resolve commit for ${APP_REF}" >&2
+            exit 1
+          fi
+
+          if ! ostree --repo="${REPO_DIR}" show --list-detached-metadata-keys "${APP_COMMIT}" | grep -qx 'ostree.gpgsigs'; then
+            echo "Error: Commit ${APP_COMMIT} for ${APP_REF} is missing ostree.gpgsigs detached metadata." >&2
+            exit 1
+          fi
+
+          SIG_HEX="$(ostree --repo="${REPO_DIR}" show --print-detached-metadata-key=ostree.gpgsigs --print-hex "${APP_COMMIT}" || true)"
+          if [[ -z "${SIG_HEX}" ]]; then
+            echo "Error: Commit ${APP_COMMIT} has ostree.gpgsigs key but no signature payload." >&2
+            exit 1
+          fi
+
+          echo "Verified GPG signatures present for ${APP_REF} at commit ${APP_COMMIT}."
 
       - name: Prepare Pages site content
         run: |
