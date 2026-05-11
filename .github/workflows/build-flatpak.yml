@@ -363,6 +363,19 @@ jobs:
               --output /tmp/gpg-probe.sig \
               --sign /tmp/gpg-probe.txt
           fi
+
+          # Sign the exported app commit so clients with gpg-verify enabled can pull it.
+          APP_REF="app/com.setiastro.SetiAstroSuitePro/x86_64/stable"
+          APP_COMMIT="$(ostree --repo="${REPO_DIR}" rev-parse "${APP_REF}")"
+          if [[ -z "${APP_COMMIT}" ]]; then
+            echo "Error: Could not resolve commit for ${APP_REF}" >&2
+            exit 1
+          fi
+
+          ostree --repo="${REPO_DIR}" gpg-sign \
+            --gpg-homedir="${HOME}/.gnupg" \
+            "${APP_COMMIT}" \
+            "${KEY_ID}"
           
           # Sign the repository metadata
           flatpak build-update-repo \
@@ -377,6 +390,20 @@ jobs:
 
           SITE_DIR="pages-site"
           mkdir -p "${SITE_DIR}"
+
+          BUNDLE_PATH="$(find out/flatpak -type f -name '*.flatpak' | head -n1 || true)"
+          BUNDLE_NAME=""
+          LATEST_VERSION="unknown"
+          LATEST_RELEASE="unknown"
+          LATEST_BUILD_LABEL="unknown"
+          if [[ -n "${BUNDLE_PATH}" ]]; then
+            BUNDLE_NAME="$(basename "${BUNDLE_PATH}")"
+            if [[ "${BUNDLE_NAME}" =~ ^setiastrosuitepro-([^-]+)-([^.]+)\.flatpak$ ]]; then
+              LATEST_VERSION="${BASH_REMATCH[1]}"
+              LATEST_RELEASE="${BASH_REMATCH[2]}"
+              LATEST_BUILD_LABEL="${LATEST_VERSION}-${LATEST_RELEASE}"
+            fi
+          fi
 
           # Publish the OSTree repository at the site root.
           cp -a repo/. "${SITE_DIR}/"
@@ -396,6 +423,21 @@ jobs:
             cp public.gpg "${SITE_DIR}/"
           fi
 
+          # Publish latest build metadata for quick visibility and automation checks.
+          cat > "${SITE_DIR}/latest-build.txt" <<EOF
+          ${LATEST_BUILD_LABEL}
+          EOF
+
+          cat > "${SITE_DIR}/latest-build.json" <<EOF
+          {
+            "app_id": "com.setiastro.SetiAstroSuitePro",
+            "version": "${LATEST_VERSION}",
+            "release": "${LATEST_RELEASE}",
+            "build": "${LATEST_BUILD_LABEL}",
+            "bundle": "${BUNDLE_NAME}"
+          }
+          EOF
+
           # Add a minimal index so opening the root URL in a browser does not return 404.
           cat > "${SITE_DIR}/index.html" <<EOF
           <!doctype html>
@@ -414,6 +456,16 @@ jobs:
           <body>
             <h1>SetiAstro Flatpak Repository</h1>
             <p>This is an OSTree Flatpak repository endpoint.</p>
+
+            <h2>Latest Build</h2>
+            <p><strong>${LATEST_BUILD_LABEL}</strong></p>
+            <p>Version: ${LATEST_VERSION}<br/>Release: ${LATEST_RELEASE}</p>
+            <p>
+              Machine-readable:
+              <a href="latest-build.txt">latest-build.txt</a> |
+              <a href="latest-build.json">latest-build.json</a>
+            </p>
+
             <h2>Add This Repository</h2>
             <pre><code>flatpak remote-add --if-not-exists razorbladex401 https://razorbladex401.github.io/setiastrosuitepro-builder/${FLATPAKREPO_BASENAME}</code></pre>
 
